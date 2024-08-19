@@ -1,0 +1,24 @@
+{
+  "name": "bs_admin",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@babel/core": "^7.24.9",
+    "@babel/node": "^7.24.8",
+    "@babel/preset-env": "^7.24.8",
+    "axios": "^1.7.2",
+    "babel": "^6.23.0",
+    "connect-mongo": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongodb": "^6.8.0"
+  }
+}
