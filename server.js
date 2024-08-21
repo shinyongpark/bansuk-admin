@@ -12,10 +12,10 @@ let connectDB = require('./config/db') //database.js 파일 경로
 
 let db
 connectDB.then((client)=>{
-  console.log('DB연결성공')
+  console.log('Connected to MongoDB')
   db = client.db('bs_admin')
   app.listen(process.env.PORT, () => {
-    console.log('http://localhost:8080 에서 서버 실행중')
+    console.log('running on port')
   })
 }).catch((err)=>{
   console.log(err)
