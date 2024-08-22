@@ -49,8 +49,11 @@ const Badges = React.lazy(() => import('./views/notifications/badges/Badges'))
 const Modals = React.lazy(() => import('./views/notifications/modals/Modals'))
 const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
-// Products
+// 재고 관리
 const ProductList = React.lazy(() => import('./views/products/productList/productList'))
+const EditStock = React.lazy(() => import('./views/products/editStock/editStock'))
+
+// 판매량 관리
 const ViewSales = React.lazy(() => import('./views/sales/viewSales/viewSales'))
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
@@ -100,7 +103,8 @@ const routes = [
   { path: '/notifications/modals', name: 'Modals', element: Modals },
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
-  { path: '/products/product-list', name: '제품 재고 관리', element: ProductList },
+  { path: '/products/product-list', name: '제품 재고 조회', element: ProductList },
+  { path: '/products/edit-stock', name: '제품 재고 조회', element: EditStock },
   { path: '/sales/view-sales', name: '판매량 조회', element: ViewSales }
 ]
 

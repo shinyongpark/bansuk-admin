@@ -15,7 +15,7 @@ connectDB.then((client)=>{
   console.log('Connected to MongoDB')
   db = client.db('bs_admin')
   app.listen(process.env.PORT, () => {
-    console.log('running on port')
+    console.log('running on port ' + process.env.PORT)
   })
 }).catch((err)=>{
   console.log(err)

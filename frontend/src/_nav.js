@@ -314,13 +314,13 @@ const _nav = [
     items: [
       {
         component: CNavItem,
-        name: '재고량 관리',
+        name: '재고량 조회',
         to: '/products/product-list',
       },
       {
         component: CNavItem,
-        name: '원가 관리',
-        to: '/theme/typography',
+        name: '입출고 입력',
+        to: '/products/edit-stock',
       },
     ],
   },
