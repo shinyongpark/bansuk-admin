@@ -309,7 +309,7 @@ const _nav = [
   },
   {
     component: CNavGroup,
-    name: '재고 관련',
+    name: '제품 관리',
     icon: <CIcon icon={cilClipboard} customClassName="nav-icon" />,
     items: [
       {
@@ -321,6 +321,11 @@ const _nav = [
         component: CNavItem,
         name: '입출고 입력',
         to: '/products/edit-stock',
+      },
+      {
+        component: CNavItem,
+        name: '원가 조회/관리',
+        to: '/products/prime-cost',
       },
     ],
   },

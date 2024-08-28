@@ -17,7 +17,7 @@ import {
 } from '@coreui/react'
 import { DocsExample } from 'src/components'
 
-const Layout = () => {
+const EditStock = () => {
   return (
     <CRow>
       <CCol xs={12}>
@@ -284,4 +284,4 @@ const Layout = () => {
   )
 }
 
-export default Layout
+export default EditStock
