@@ -141,6 +141,107 @@ app.post('/add-outgoing-goods', async (req, res) => {
   }
 });
 
+app.post('/edit-products', async (req, res) => {
+  console.log('reached')
+  const {
+    code: good_id,
+    importType,
+    category,
+    cate_id: cate_id,
+    factory: good_factory,
+    newProductName: newProductName,
+    newNickname: newNickname,
+    newComment: newComment,
+    coupang: coupang,
+    validation: validation,
+    description: description,
+    deliveryFee: del_a,
+    containerDeliveryFee: del_b,
+    containerFee: del_c,
+    rocket: rocket,
+  } = req.body; // Extract code and other fields from body
+
+  const updateData = {};
+  if (good_factory !== '') updateData.good_factory = good_factory;
+  if (newProductName !== '') updateData.good_name = newProductName;
+  if (newNickname !== '') updateData.good_alias = newNickname;
+  if (newComment !== '') updateData.comment = newComment;
+  if (coupang !== '') updateData.good_remarks2 = coupang;
+  if (validation !== '') updateData.good_kc = validation;
+  if (description !== '') updateData.good_remarks = description;
+  if (del_a !== '') updateData.del_a = del_a;
+  if (del_b !== '') updateData.del_b = del_b;
+  if (del_c !== '') updateData.del_c = del_c;
+  updateData.good_rocket = rocket;
+
+  console.log(cate_id)
+  try {
+      const result = await db.collection('product_list').updateOne(
+          { good_id: good_id }, // Query to find the product by code
+          { $set: updateData}  // Use the $set operator to update the product fields
+      );
+
+      if (result.modifiedCount === 0) {
+          return res.status(404).send({ message: 'No product found with the given code or no changes made.' });
+      }
+
+      res.status(200).send({ message: 'Product updated successfully', result: result });
+  } catch (error) {
+      console.error('Failed to update product:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/add-product', async (req, res) => {
+  const {
+    importType: importType,
+    category: category,
+    productCode: productCode,
+    productName: productName,
+    classification: classification,
+    good_alias: good_alias,
+    factoryName: factoryName,
+    description: description,
+  } = req.body;
+  const productExists = await db.collection('product_list').findOne({good_id: productCode });
+
+  if (productExists) {
+    return res.status(400).json({ message: 'Product code already exists.' });
+  }
+
+  try {
+    const nextUID = await getNextUID('product_list');
+    await db.collection('product_list').insertOne({
+      uid: nextUID,
+      cate_id: category,
+      good_id: productCode,
+      good_name: productName,
+      prime_cost: '',
+      prime_cost_2: '',
+      good_alias: good_alias,
+      good_exist: 'y',
+      comment: description,
+      reg_date: new Date(),
+      sale_price: '',
+      free_sale_price: '',
+      stock_kind: importType,
+      del_a: '',
+      del_b: '',
+      del_c: '',
+      good_class: classification,
+      good_factory: factoryName,
+      good_remarks: '',
+      good_remarks2: '',
+      good_kc: '',
+      good_rocket: ''
+    });
+    res.status(201).json({ message: 'Product added successfully.' });
+  } catch (error) {
+    console.error('Failed to add product:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {

@@ -324,6 +324,16 @@ const _nav = [
       },
       {
         component: CNavItem,
+        name: '제품 수정',
+        to: '/products/edit-product',
+      },
+      {
+        component: CNavItem,
+        name: '제품 등록',
+        to: '/products/add-product',
+      },
+      {
+        component: CNavItem,
         name: '원가 조회/관리',
         to: '/products/prime-cost',
       },
