@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
+  CButton,
   CCard,
   CCardBody,
   CCardHeader,
@@ -7,91 +9,150 @@ import {
   CRow,
   CTable,
   CTableBody,
-  CTableCaption,
   CTableDataCell,
   CTableHead,
   CTableHeaderCell,
   CTableRow,
-  CButton,
+  CCollapse,
   CFormInput
-} from '@coreui/react'
+} from '@coreui/react';
 
-const PrimeCost = () => {
+const ProductsByCategory = () => {
+  const [categories, setCategories] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/get-categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchProducts = async (categoryId) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/get-products?category=${categoryId}`);
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products for category:', categoryId, error);
+    }
+  };
+
+  const toggleCategory = (categoryId) => {
+    if (activeCategory === categoryId) {
+      setActiveCategory(null);
+      setProducts([]);
+    } else {
+      setActiveCategory(categoryId);
+      fetchProducts(categoryId);
+    }
+  };
+
+  const handleCostUpdate = async (id, newCost) => {
+    if (!newCost || isNaN(Number(newCost))) {
+      alert('Please enter a valid cost.');
+      return;
+    }
+  
+    try {
+      // Assume newCost is converted to a number if it's a valid number string
+      newCost = parseFloat(newCost).toFixed(2); // Keeping two decimals for currency values
+  
+      // Sending the updated cost to the server
+      const response = await axios.post('http://localhost:8080/update-product-cost', {
+        id,
+        newPrimeCost: newCost
+      });
+  
+      // Handling the response from the server
+      if (response.data && response.status === 200) {
+        alert('제품 원가가 성공적으로 업데이트 되었습니다!');
+        setProducts(products.map(product =>
+          product.id === id ? { ...product, primeCost: newCost } : product
+        ));
+      } else {
+        throw new Error('Failed to update the product cost.');
+      }
+    } catch (error) {
+      console.error('제품 업데이트 실패:', error);
+      alert('제품 원가 업데이트 실패');
+    }
+  };
+  
+
   return (
     <CRow>
       <CCol xs={12}>
-        <CCard className="mb-4">
-          <CCardHeader>
-            <strong>거꾸리 [일반]</strong>
-          </CCardHeader>
-          <CCardBody>
-            <CTable hover>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">자동분류명</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">상품 코드</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">공장</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">총액</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">변경 원가</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">확인</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody>
-                <CTableRow>
-                  <CTableDataCell>비스펙 601 거꾸리</CTableDataCell>
-                  <CTableDataCell>비스펙601거꾸리①</CTableDataCell>
-                  <CTableDataCell>10113</CTableDataCell>
-                  <CTableDataCell>중잉</CTableDataCell>
-                  <CTableDataCell>109,100원</CTableDataCell>
-                  <CTableDataCell>18,437,900</CTableDataCell>
-                  <CTableDataCell>2023-08-22</CTableDataCell>
-                  <CTableDataCell><CFormInput id="newPrimeCost" placeholder="0" /></CTableDataCell>
-                  <CTableDataCell>
-                    <CButton color="primary" type="submit">
-                        확인
-                    </CButton>
-                  </CTableDataCell>
-                </CTableRow>
-                <CTableRow>
-                  <CTableDataCell>비스펙 601 거꾸리</CTableDataCell>
-                  <CTableDataCell>비스펙601거꾸리①</CTableDataCell>
-                  <CTableDataCell>10113</CTableDataCell>
-                  <CTableDataCell>중잉</CTableDataCell>
-                  <CTableDataCell>109,100원</CTableDataCell>
-                  <CTableDataCell>18,437,900</CTableDataCell>
-                  <CTableDataCell>2023-08-22</CTableDataCell>
-                  <CTableDataCell><CFormInput id="newPrimeCost" placeholder="0" /></CTableDataCell>
-                  <CTableDataCell>
-                    <CButton color="primary" type="submit">
-                        확인
-                    </CButton>
-                  </CTableDataCell>
-                </CTableRow>
-                <CTableRow>
-                  <CTableDataCell>비스펙 601 거꾸리</CTableDataCell>
-                  <CTableDataCell>비스펙601거꾸리①</CTableDataCell>
-                  <CTableDataCell>10113</CTableDataCell>
-                  <CTableDataCell>중잉</CTableDataCell>
-                  <CTableDataCell>109,100원</CTableDataCell>
-                  <CTableDataCell>18,437,900</CTableDataCell>
-                  <CTableDataCell>2023-08-22</CTableDataCell>
-                  <CTableDataCell><CFormInput id="newPrimeCost" placeholder="0" /></CTableDataCell>
-                  <CTableDataCell>
-                    <CButton color="primary" type="submit">
-                        확인
-                    </CButton>
-                  </CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
-          </CCardBody>
-        </CCard>
+        {categories.map((category) => (
+          <CCard key={category.id} className="mb-3">
+            <CCardHeader>
+              <strong>{category.name}</strong>
+              <CButton size="sm" color="link" onClick={() => toggleCategory(category.id)}>
+                {activeCategory === category.id ? 'Hide Details' : 'Show Details'}
+              </CButton>
+            </CCardHeader>
+            <CCollapse visible={activeCategory === category.id}>
+              <CCardBody>
+                <CTable hover>
+                  <CTableHead>
+                    <CTableRow>
+                      <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">자동분류명</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">상품 코드</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">공장</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">총액</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">
+                        변경 원가
+                        <CFormInput type="text" placeholder="Enter new cost" />
+                      </CTableHeaderCell>
+                      <CTableHeaderCell scope="col">
+                        <CButton color="primary">확인</CButton>
+                      </CTableHeaderCell>
+                    </CTableRow>
+                  </CTableHead>
+                  <CTableBody>
+                    {products.map((product) => (
+                      <CTableRow key={product.id}>
+                        <CTableDataCell>{product.productName}</CTableDataCell>
+                        <CTableDataCell>{product.nickname}</CTableDataCell>
+                        <CTableDataCell>{product.id}</CTableDataCell>
+                        <CTableDataCell>{product.factory}</CTableDataCell>
+                        <CTableDataCell>{product.primeCost}</CTableDataCell>
+                        <CTableDataCell>{'Calculated Total'}</CTableDataCell>
+                        <CTableDataCell>{'Latest Change Date'}</CTableDataCell>
+                        <CTableDataCell>
+                          <CFormInput
+                            type="text"
+                            onChange={(e) => handleCostUpdate(product.id, e.target.value)}
+                          />
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <CButton
+                            color="primary"
+                            onClick={() => handleCostUpdate(product.id, product.newPrimeCost)}
+                          >
+                            확인
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCardBody>
+            </CCollapse>
+          </CCard>
+        ))}
       </CCol>
     </CRow>
-  )
-}
+  );
+};
 
-export default PrimeCost
+export default ProductsByCategory;

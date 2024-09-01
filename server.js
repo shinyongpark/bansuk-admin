@@ -66,6 +66,13 @@ app.get('/get-products', async (req, res) => {
         res.json(products.map(product => ({
             id: product.good_id,
             productName: product.good_name,
+            nickname: product.good_alias,
+            factory: product.good_factory,
+            good_kc: product.good_kc,
+            import: product.stock_kind,
+            remarks: product.good_remarks,
+            coupang: product.good_remarks2,
+            primeCost: product.prime_cost,
         })));
     } catch (error) {
         console.error('Failed to fetch products:', error);
@@ -242,6 +249,28 @@ app.post('/add-product', async (req, res) => {
   }
 });
 
+app.post('/update-product-cost', async (req, res) => {
+  const { id, newPrimeCost } = req.body; // Destructure the relevant data from request body
+
+  if (!id || newPrimeCost === undefined) {
+    return res.status(400).json({ message: 'Product ID and new prime cost are required.' });
+  }
+
+  try {
+    // Attempt to update the product using the provided ID
+    const updatedProduct = await db.collection('product_list').findByIdAndUpdate(good_id, { prime_cost: newPrimeCost }, { new: true });
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: 'Product not found.' });
+    }
+
+    // Send back the updated product data
+    res.status(200).json({ message: 'Product updated successfully', updatedProduct });
+  } catch (error) {
+    console.error('Failed to update product:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {
