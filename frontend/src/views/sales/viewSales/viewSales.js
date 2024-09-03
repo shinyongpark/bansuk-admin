@@ -1,120 +1,63 @@
-// import React, { useState } from 'react'
-// import { CCard, CCardBody, CCol, CCardHeader, CRow, CNav, CNavItem, CNavLink, CCollapse } from '@coreui/react'
-// import {
-//   CChartBar,
-//   CChartDoughnut,
-//   CChartLine,
-//   CChartPie,
-//   CChartPolarArea,
-//   CChartRadar,
-// } from '@coreui/react-chartjs'
-// import { DocsCallout } from 'src/components'
-
-// const viewSales = () => {
-//   const random = () => Math.round(Math.random() * 100)
-//   const [visibleTable, setVisibleTable] = useState(false)
-//   const [visibleLineChart, setVisibleLineChart] = useState(false)
-
-//   return (
-//     <CRow>
-//         <CCol xs={12}>
-//             <CCard className="mb-4">
-//                 <CNav variant="tabs">
-//                     <CNavItem>
-//                         <CNavLink onClick={() => {setVisibleTable(!visibleTable)
-//                             setVisibleLineChart(visibleLineChart)}
-//                             }>
-//                             Table
-//                         </CNavLink>
-//                     </CNavItem>
-//                     <CNavItem>
-//                         <CNavLink onClick={() => {setVisibleTable(visibleTable)
-//                             setVisibleLineChart(!visibleLineChart)}
-//                             }>
-//                             Line Chart
-//                         </CNavLink>
-//                     </CNavItem>
-//                 </CNav>
-//                 <CRow>
-//                     <CCol xs={12}>
-//                         <CCollapse visible={visibleTable}>
-//                             <CCard className="mt-3">
-//                                 <CCardBody>
-//                                     <CChartLine
-//                                         data={{
-//                                         labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-//                                         datasets: [
-//                                         {
-//                                             label: '월별 판매량',
-//                                             backgroundColor: '#f87979',
-//                                             data: [40, 20, 12, 39, 10, 40, 39, 80, 40],
-//                                         },
-//                                         ],
-//                                     }}
-//                                     labels="months"
-//                                     />
-//                                 </CCardBody>
-//                             </CCard>
-//                         </CCollapse>
-//                     </CCol>
-//                     <CCol xs={12}>
-//                         <CCollapse visible={visibleLineChart}>
-//                             <CCard className="mt-3">
-//                                 <CCardBody>
-//                                     <CChartBar
-//                                     data={{
-//                                         labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-//                                         datasets: [
-//                                         {
-//                                             label: 'GitHub Commits',
-//                                             backgroundColor: '#f87979',
-//                                             data: [40, 20, 12, 39, 10, 40, 39, 80, 40],
-//                                         },
-//                                         ],
-//                                     }}
-//                                     labels="months"
-//                                     />
-//                                 </CCardBody>
-//                             </CCard>
-//                         </CCollapse>
-//                     </CCol>
-//                 </CRow>
-//             </CCard>
-//         </CCol>
-//     </CRow>
-//   )
-// }
-
-// export default viewSales
 import React, { useState, useEffect } from 'react';
-import { CCard, CCardBody, CCol, CCardHeader, CRow, CNav, CNavItem, CNavLink, CCollapse } from '@coreui/react';
-import { CChartBar, CChartLine } from '@coreui/react-chartjs';
 import axios from 'axios';
+import {
+  CCard,
+  CCardBody,
+  CCardHeader,
+  CCol,
+  CRow,
+  CTable,
+  CTableBody,
+  CTableDataCell,
+  CTableHead,
+  CTableHeaderCell,
+  CTableRow,
+  CNav,
+  CNavItem,
+  CNavLink,
+  CCollapse,
+  CFormSelect,
+} from '@coreui/react';
+import {
+  CChartBar,
+  CChartDoughnut,
+  CChartLine,
+  CChartPie,
+  CChartPolarArea,
+  CChartRadar,
+} from '@coreui/react-chartjs'
 
-const ViewSales = () => {
+
+const SalesDashboard = () => {
   const [orders, setOrders] = useState([]);
-  const [visibleTable, setVisibleTable] = useState(false);
+  const [visibleTable, setVisibleTable] = useState(true);
   const [visibleLineChart, setVisibleLineChart] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedProduct, setSelectedProduct] = useState('');
 
+  // Fetching order data based on selected month and year
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchOrders = async () => {
       try {
-        const response = await fetch('http://localhost:8080/sales/view-sales');
-        const data = await response.json();
-        setOrders(data.orders);
-        console.log(data);
-        console.log('data sent')
+        const response = await axios.get(`http://localhost:8080/sales/orders?year=${selectedYear}&month=${selectedMonth}`);
+        setOrders(response.data);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
     };
-    fetchData();
-  }, []);
-  
 
-  // Example of how you might use the fetched data in your charts
-  const salesData = orders.map(order => order.productID); // Assuming each order has an 'amount' field
-  const salesLabels = orders.map(order => order.productCount); // Assuming each order has a 'date' field
+    fetchOrders();
+  }, [selectedMonth, selectedYear]);
+
+  // Selecting years for dropdown
+  const years = Array.from(new Array(20), (val, index) => new Date().getFullYear() - index);
+
+  // Handling product selection for chart
+  const handleProductSelect = (productId) => {
+    setSelectedProduct(productId);
+    // Additional fetch or adjustments for chart can be made here
+  };
 
   return (
     <CRow>
@@ -122,36 +65,74 @@ const ViewSales = () => {
         <CCard className="mb-4">
           <CNav variant="tabs">
             <CNavItem>
-              <CNavLink onClick={() => {setVisibleTable(!visibleTable); setVisibleLineChart(visibleLineChart)}}>
+              <CNavLink onClick={() => { setVisibleTable(true); setVisibleLineChart(false); }}>
                 Table
               </CNavLink>
             </CNavItem>
             <CNavItem>
-              <CNavLink onClick={() => {setVisibleTable(visibleTable); setVisibleLineChart(!visibleLineChart)}}>
+              <CNavLink onClick={() => { setVisibleTable(false); setVisibleLineChart(true); }}>
                 Line Chart
               </CNavLink>
             </CNavItem>
           </CNav>
+          <CCardHeader>
+            <div className="d-flex align-items-center">
+              <CFormSelect className="w-auto" onChange={(e) => setSelectedYear(e.target.value)}>
+                {years.map(year => <option key={year} value={year}>{year}</option>)}
+              </CFormSelect>
+              <CFormSelect className="w-auto mx-2" onChange={(e) => setSelectedMonth(e.target.value)}>
+                {Array.from(new Array(12), (v, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+              </CFormSelect>
+            </div>
+          </CCardHeader>
           <CCollapse visible={visibleTable}>
             <CCardBody>
-              {/* Displaying fetched data */}
-              {orders.map(order => (
-                <div key={order._id}>{order.name} - ${order.amount}</div> // Adjust fields based on your actual data structure
-              ))}
+              <CTable hover>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">자동분류명</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">상품 코드</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">공장</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">총액</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">변경 원가</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">확인</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {orders.map(order => (
+                    <CTableRow key={order._id}>
+                      <CTableDataCell>{order.goods_name}</CTableDataCell>
+                      <CTableDataCell>{order.comments}</CTableDataCell>
+                      <CTableDataCell>{order.goods_uid}</CTableDataCell>
+                      <CTableDataCell>{order.warehouse}</CTableDataCell>
+                      <CTableDataCell>{order.supply_price}</CTableDataCell>
+                      <CTableDataCell>{order.selling_price}</CTableDataCell>
+                      <CTableDataCell>{order.mod_date}</CTableDataCell>
+                      <CTableDataCell><CFormInput /></CTableDataCell>
+                      <CTableDataCell>
+                        <CButton color="primary" onClick={() => handleCostUpdate(order._id)}>Update</CButton>
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
+                </CTableBody>
+              </CTable>
             </CCardBody>
           </CCollapse>
           <CCollapse visible={visibleLineChart}>
             <CCardBody>
               <CChartLine
                 data={{
-                  labels: salesLabels,
+                  labels: Array.from(new Array(30), (_, i) => i + 1), // Assuming 30 days in a month for simplicity
                   datasets: [{
-                    label: '월별 판매량',
+                    label: 'Daily Sales',
                     backgroundColor: '#f87979',
-                    data: salesData,
+                    data: orders.map(order => order.goods_num), // Adjust as per actual data key for quantities
                   }],
                 }}
-                labels="months"
+                labels="days"
               />
             </CCardBody>
           </CCollapse>
@@ -159,6 +140,6 @@ const ViewSales = () => {
       </CCol>
     </CRow>
   );
-}
+};
 
-export default ViewSales;
+export default SalesDashboard;

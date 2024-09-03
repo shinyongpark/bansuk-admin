@@ -272,6 +272,52 @@ app.post('/update-product-cost', async (req, res) => {
   }
 });
 
+const formatDate = (date) => {
+  const pad = (num) => num.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+app.get('/sales/orders', async (req, res) => {
+  const { year, month } = req.query;
+
+  try {
+      const startDate = new Date(year, month - 1, 1, 0, 0, 0); // Start of month
+      const endDate = new Date(year, month, 0, 23, 59, 59);   // End of month
+      console.log(formatDate(startDate), formatDate(endDate))
+      const orders = await db.collection('orders').find({
+          reg_date: {
+              $gte: formatDate(startDate),
+              $lte: formatDate(endDate)
+          }
+      }).toArray();
+      console.log(orders)
+      res.json(orders);
+  } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+app.get('/sales/product-details', async (req, res) => {
+  const { productId } = req.query;
+  if (!productId) {
+    return res.status(400).send({ error: 'Product ID is required' });
+  }
+  try {
+    const productDetails = await db.collection('product_list').findOne({ good_id: productId });
+    if (!productDetails) {
+      return res.status(404).send({ error: 'Product not found' });
+    }
+    res.json(productDetails);
+  } catch (error) {
+    console.error('Failed to fetch product details:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
