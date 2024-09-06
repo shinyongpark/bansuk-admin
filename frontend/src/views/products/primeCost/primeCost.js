@@ -59,17 +59,17 @@ const ProductsByCategory = () => {
       alert('Please enter a valid cost.');
       return;
     }
-  
+
     try {
       // Assume newCost is converted to a number if it's a valid number string
       newCost = parseFloat(newCost).toFixed(2); // Keeping two decimals for currency values
-  
+
       // Sending the updated cost to the server
       const response = await axios.post('http://localhost:8080/update-product-cost', {
         id,
         newPrimeCost: newCost
       });
-  
+
       // Handling the response from the server
       if (response.data && response.status === 200) {
         alert('제품 원가가 성공적으로 업데이트 되었습니다!');
@@ -84,7 +84,7 @@ const ProductsByCategory = () => {
       alert('제품 원가 업데이트 실패');
     }
   };
-  
+
 
   return (
     <CRow>

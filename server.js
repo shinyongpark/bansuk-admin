@@ -9,13 +9,13 @@ let connectDB = require('./config/db'); // Adjust path as necessary
 
 let db;
 connectDB.then((client) => {
-    console.log('Connected to MongoDB');
-    db = client.db('bs_admin');
-    app.listen(process.env.PORT, () => {
-        console.log('Running on port ' + process.env.PORT);
-    });
+  console.log('Connected to MongoDB');
+  db = client.db('bs_admin');
+  app.listen(process.env.PORT, () => {
+    console.log('Running on port ' + process.env.PORT);
+  });
 }).catch((err) => {
-    console.error(err);
+  console.error(err);
 });
 
 // Middleware
@@ -25,14 +25,14 @@ app.use(express.static(path.join(__dirname, 'frontend/build')));
 
 // API endpoints
 app.get('/sales/view-sales', async (req, res) => {
-    try {
-        const data = await db.collection('orders').find().toArray();
-        console.log(data);
-        res.json({ orders: data });
-    } catch (error) {
-        console.error('Failed to fetch orders:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+  try {
+    const data = await db.collection('orders').find().toArray();
+    console.log(data);
+    res.json({ orders: data });
+  } catch (error) {
+    console.error('Failed to fetch orders:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/get-categories', async (req, res) => {
@@ -44,8 +44,8 @@ app.get('/get-categories', async (req, res) => {
       console.log('No categories found in the database.');
     }
     const categories = data.map(category => ({
-        id: category.cate_id.toString(),  // Ensuring the ID is a string
-        name: category.cate_name
+      id: category.cate_id.toString(),  // Ensuring the ID is a string
+      name: category.cate_name
     }));
     console.log('Categories to send:', categories);  // Log the processed categories
     res.json(categories);
@@ -57,94 +57,94 @@ app.get('/get-categories', async (req, res) => {
 
 
 app.get('/get-products', async (req, res) => {
-    const { category } = req.query;
-    if (!category) {
-        return res.status(400).send({ error: 'Category ID is required' });
-    }
-    try {
-        const products = await db.collection('product_list').find({ cate_id: category }).toArray();
-        res.json(products.map(product => ({
-            id: product.good_id,
-            productName: product.good_name,
-            nickname: product.good_alias,
-            factory: product.good_factory,
-            good_kc: product.good_kc,
-            import: product.stock_kind,
-            remarks: product.good_remarks,
-            coupang: product.good_remarks2,
-            primeCost: product.prime_cost,
-        })));
-    } catch (error) {
-        console.error('Failed to fetch products:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+  const { category } = req.query;
+  if (!category) {
+    return res.status(400).send({ error: 'Category ID is required' });
+  }
+  try {
+    const products = await db.collection('product_list').find({ cate_id: category }).toArray();
+    res.json(products.map(product => ({
+      id: product.good_id,
+      productName: product.good_name,
+      nickname: product.good_alias,
+      factory: product.good_factory,
+      good_kc: product.good_kc,
+      import: product.stock_kind,
+      remarks: product.good_remarks,
+      coupang: product.good_remarks2,
+      primeCost: product.prime_cost,
+    })));
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 async function getNextUID(collectionName) {
   try {
-      const lastRecord = await db.collection(collectionName).find().sort({_id: -1}).limit(1).toArray();
-      const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].uid) : 0;
-      return maxUID + 1;
+    const lastRecord = await db.collection(collectionName).find().sort({ _id: -1 }).limit(1).toArray();
+    const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].uid) : 0;
+    return maxUID + 1;
   } catch (error) {
-      console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
-      throw new Error('Database operation failed');
+    console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
+    throw new Error('Database operation failed');
   }
 }
 
 app.post('/add-incoming-goods', async (req, res) => {
   try {
-      const nextUID = await getNextUID('incoming_goods');
-      const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
-      const newRecord = {
-          uid: nextUID.toString(),
-          cate_id,
-          good_cate,
-          code,
-          good_name,
-          stocks,
-          warehouse: '반석',
-          comment,
-          date,
-          state: 'in',
-          good_class: '0',
-          good_exist: 'y',
-          good_rocket: 'n'
-      };
-      await db.collection('incoming_goods').insertOne(newRecord);
-      res.status(201).json({ message: 'Incoming goods record added successfully!' });
+    const nextUID = await getNextUID('incoming_goods');
+    const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
+    const newRecord = {
+      uid: nextUID.toString(),
+      cate_id,
+      good_cate,
+      code,
+      good_name,
+      stocks,
+      warehouse: '반석',
+      comment,
+      date,
+      state: 'in',
+      good_class: '0',
+      good_exist: 'y',
+      good_rocket: 'n'
+    };
+    await db.collection('incoming_goods').insertOne(newRecord);
+    res.status(201).json({ message: 'Incoming goods record added successfully!' });
   } catch (error) {
-      console.error('Failed to add incoming goods:', error);
-      res.status(500).json({ error: 'Failed to add incoming goods' });
+    console.error('Failed to add incoming goods:', error);
+    res.status(500).json({ error: 'Failed to add incoming goods' });
   }
 });
 
 app.post('/add-outgoing-goods', async (req, res) => {
   try {
-      console.log('outgoing post request reached')
-      const nextUID = await getNextUID('outgoing_goods');
-      console.log('nextUID = ', nextUID.toString())
-      const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
-      const newRecord = {
-          uid: nextUID.toString(),
-          state: 'out',
-          cate_id,
-          good_cate,
-          code,
-          good_name,
-          stocks,
-          warehouse: '반석',
-          comment,
-          date,
-          category: '00000000',
-          good_class: '0',
-          good_exist: 'y',
-          good_rocket: 'n'
-      };
-      await db.collection('outgoing_goods').insertOne(newRecord);
-      res.status(201).json({ message: 'Outgoing goods record added successfully!' });
+    console.log('outgoing post request reached')
+    const nextUID = await getNextUID('outgoing_goods');
+    console.log('nextUID = ', nextUID.toString())
+    const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
+    const newRecord = {
+      uid: nextUID.toString(),
+      state: 'out',
+      cate_id,
+      good_cate,
+      code,
+      good_name,
+      stocks,
+      warehouse: '반석',
+      comment,
+      date,
+      category: '00000000',
+      good_class: '0',
+      good_exist: 'y',
+      good_rocket: 'n'
+    };
+    await db.collection('outgoing_goods').insertOne(newRecord);
+    res.status(201).json({ message: 'Outgoing goods record added successfully!' });
   } catch (error) {
-      console.error('Failed to add outgoing goods:', error);
-      res.status(500).json({ error: 'Failed to add outgoing goods' });
+    console.error('Failed to add outgoing goods:', error);
+    res.status(500).json({ error: 'Failed to add outgoing goods' });
   }
 });
 
@@ -183,19 +183,19 @@ app.post('/edit-products', async (req, res) => {
 
   console.log(cate_id)
   try {
-      const result = await db.collection('product_list').updateOne(
-          { good_id: good_id }, // Query to find the product by code
-          { $set: updateData}  // Use the $set operator to update the product fields
-      );
+    const result = await db.collection('product_list').updateOne(
+      { good_id: good_id }, // Query to find the product by code
+      { $set: updateData }  // Use the $set operator to update the product fields
+    );
 
-      if (result.modifiedCount === 0) {
-          return res.status(404).send({ message: 'No product found with the given code or no changes made.' });
-      }
+    if (result.modifiedCount === 0) {
+      return res.status(404).send({ message: 'No product found with the given code or no changes made.' });
+    }
 
-      res.status(200).send({ message: 'Product updated successfully', result: result });
+    res.status(200).send({ message: 'Product updated successfully', result: result });
   } catch (error) {
-      console.error('Failed to update product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Failed to update product:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -210,7 +210,7 @@ app.post('/add-product', async (req, res) => {
     factoryName: factoryName,
     description: description,
   } = req.body;
-  const productExists = await db.collection('product_list').findOne({good_id: productCode });
+  const productExists = await db.collection('product_list').findOne({ good_id: productCode });
 
   if (productExists) {
     return res.status(400).json({ message: 'Product code already exists.' });
@@ -281,24 +281,22 @@ app.get('/sales/orders', async (req, res) => {
   const { year, month } = req.query;
 
   try {
-      const startDate = new Date(year, month - 1, 1, 0, 0, 0); // Start of month
-      const endDate = new Date(year, month, 0, 23, 59, 59);   // End of month
-      console.log(formatDate(startDate), formatDate(endDate))
-      const orders = await db.collection('orders').find({
-          reg_date: {
-              $gte: formatDate(startDate),
-              $lte: formatDate(endDate)
-          }
-      }).toArray();
-      console.log(orders)
-      res.json(orders);
+    const startDate = new Date(year, month - 1, 1, 0, 0, 0); // Start of month
+    const endDate = new Date(year, month, 0, 23, 59, 59);   // End of month
+    console.log(formatDate(startDate), formatDate(endDate))
+    const orders = await db.collection('orders').find({
+      reg_date: {
+        $gte: formatDate(startDate),
+        $lte: formatDate(endDate)
+      }
+    }).toArray();
+    console.log(orders)
+    res.json(orders);
   } catch (error) {
-      console.error('Failed to fetch orders:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Failed to fetch orders:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
 
 app.get('/sales/product-details', async (req, res) => {
   const { productId } = req.query;
@@ -317,8 +315,21 @@ app.get('/sales/product-details', async (req, res) => {
   }
 });
 
+app.post('/login/verify-user', async (req, res) => {
+  const { username, password } = req.body;
+  username_temp = 'aa' // search from db
+  password_temp = 'aa' // search from db
+  if (username == username_temp && password == password_temp) {
+    console.log("server", username, password)
+    return res.status(201).json({ message: 'welcome!' });
+  }
+  const errorData = await res.json()
+  console.log(`Login failed with status: ${res.status}, message: ${errorData.message}`)
+  return res.status(404).send({ error: 'Login failed' });
+});
+
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
+  res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
 });

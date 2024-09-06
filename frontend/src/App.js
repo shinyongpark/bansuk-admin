@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
 import { CSpinner, useColorModes } from '@coreui/react'
@@ -32,6 +32,22 @@ const App = () => {
     setColorMode(storedTheme)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isAuthenticated = () => {
+    return true //change this later
+    // const token = localStorage.getItem('authToken');
+    // const expiry = localStorage.getItem('tokenExpiry');
+
+    // if (token && expiry && Date.now() < expiry) {
+    //   console.log("is authenticated");
+    //   return true;
+    // } else {
+    //   console.log("is not authenticated");
+    //   localStorage.removeItem('authToken');
+    //   localStorage.removeItem('tokenExpiry');
+    //   return false;
+    // }
+  }
+
   return (
     <HashRouter>
       <Suspense
@@ -42,11 +58,11 @@ const App = () => {
         }
       >
         <Routes>
-          <Route exact path="/login" name="Login Page" element={<Login />} />
-          <Route exact path="/register" name="Register Page" element={<Register />} />
-          <Route exact path="/404" name="Page 404" element={<Page404 />} />
-          <Route exact path="/500" name="Page 500" element={<Page500 />} />
-          <Route path="*" name="Home" element={<DefaultLayout />} />
+          <Route path="/login" element={!isAuthenticated() ? <Login /> : <Navigate to="/" />} />
+          <Route path="/register" element={!isAuthenticated() ? <Register /> : <Navigate to="/" />} />
+          <Route path="/404" element={<Page404 />} />
+          <Route path="/500" element={<Page500 />} />
+          <Route path="*" element={isAuthenticated() ? <DefaultLayout /> : <Navigate to="/login" />} />
         </Routes>
       </Suspense>
     </HashRouter>
