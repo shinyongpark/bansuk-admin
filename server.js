@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const path = require('path');
 const app = express();
 
@@ -258,7 +259,10 @@ app.post('/update-product-cost', async (req, res) => {
 
   try {
     // Attempt to update the product using the provided ID
-    const updatedProduct = await db.collection('product_list').findByIdAndUpdate(good_id, { prime_cost: newPrimeCost }, { new: true });
+    const updatedProduct = await db.collection('product_list').updateOne(
+      { good_id: id },
+      { $set: { prime_cost: newPrimeCost } }
+    );
 
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Product not found.' });
@@ -317,14 +321,21 @@ app.get('/sales/product-details', async (req, res) => {
 
 app.post('/login/verify-user', async (req, res) => {
   const { username, password } = req.body;
-  username_temp = 'aa' // search from db
-  password_temp = 'aa' // search from db
+  console.log("server.js", process.env.SECRET_KEY)
+  // search from db
+  username_temp = 'aa'
+  password_temp = 'aa'
+
   if (username == username_temp && password == password_temp) {
-    console.log("server", username, password)
-    return res.status(201).json({ message: 'welcome!' });
+    const tokenExpiry = Date.now() + 3600 * 1000 // Token expire in 1 hour
+    const authToken = crypto.randomBytes(32).toString('hex');
+    const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    //store login information
+
+    // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
+    return res.status(201).json({ message: 'welcome!', authToken: authToken, tokenExpiry: tokenExpiry, userIp: userIp });
   }
-  const errorData = await res.json()
-  console.log(`Login failed with status: ${res.status}, message: ${errorData.message}`)
   return res.status(404).send({ error: 'Login failed' });
 });
 

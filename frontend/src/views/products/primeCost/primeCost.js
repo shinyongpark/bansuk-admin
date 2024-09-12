@@ -21,6 +21,7 @@ const ProductsByCategory = () => {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [products, setProducts] = useState([]);
+  const [updateProducts, setUpdateProducts] = useState([]);
 
   useEffect(() => {
     fetchCategories();
@@ -54,15 +55,23 @@ const ProductsByCategory = () => {
     }
   };
 
-  const handleCostUpdate = async (id, newCost) => {
-    if (!newCost || isNaN(Number(newCost))) {
+  const handleChange = (id, newCost) => {
+    setUpdateProducts(prev => ({
+      ...prev,
+      [id]: newCost
+    }));
+  };
+
+  const handleCostUpdate = async (id, e) => {
+    e.preventDefault()
+
+    if (!updateProducts[id] || isNaN(Number(updateProducts[id]))) {
       alert('Please enter a valid cost.');
       return;
     }
-
     try {
       // Assume newCost is converted to a number if it's a valid number string
-      newCost = parseFloat(newCost).toFixed(2); // Keeping two decimals for currency values
+      const newCost = parseFloat(updateProducts[id]).toFixed(2); // Keeping two decimals for currency values
 
       // Sending the updated cost to the server
       const response = await axios.post('http://localhost:8080/update-product-cost', {
@@ -131,13 +140,13 @@ const ProductsByCategory = () => {
                         <CTableDataCell>
                           <CFormInput
                             type="text"
-                            onChange={(e) => handleCostUpdate(product.id, e.target.value)}
+                            onChange={(e) => handleChange(product.id, e.target.value)}
                           />
                         </CTableDataCell>
                         <CTableDataCell>
                           <CButton
                             color="primary"
-                            onClick={() => handleCostUpdate(product.id, product.newPrimeCost)}
+                            onClick={(e) => handleCostUpdate(product.id, e)}
                           >
                             확인
                           </CButton>

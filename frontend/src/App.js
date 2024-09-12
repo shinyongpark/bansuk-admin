@@ -34,16 +34,17 @@ const App = () => {
 
   const isAuthenticated = () => {
     return true //change this later
-    // const token = localStorage.getItem('authToken');
-    // const expiry = localStorage.getItem('tokenExpiry');
+    // const token = sessionStorage.getItem('authToken');
+    // const expiry = sessionStorage.getItem('tokenExpiry');
+    // console.log("app.js", token, expiry)
 
     // if (token && expiry && Date.now() < expiry) {
     //   console.log("is authenticated");
     //   return true;
     // } else {
     //   console.log("is not authenticated");
-    //   localStorage.removeItem('authToken');
-    //   localStorage.removeItem('tokenExpiry');
+    //   sessionStorage.removeItem('authToken');
+    //   sessionStorage.removeItem('tokenExpiry');
     //   return false;
     // }
   }
@@ -68,5 +69,6 @@ const App = () => {
     </HashRouter>
   )
 }
+
 
 export default App

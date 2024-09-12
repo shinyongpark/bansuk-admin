@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Select from 'react-select';
 import {
   CCard,
   CCardBody,
@@ -34,32 +35,58 @@ const SalesDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [visibleTable, setVisibleTable] = useState(true);
   const [visibleLineChart, setVisibleLineChart] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedProduct, setSelectedProduct] = useState('');
-
-  // Fetching order data based on selected month and year
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axios.get(`http://localhost:8080/sales/orders?year=${selectedYear}&month=${selectedMonth}`);
-        setOrders(response.data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      }
-    };
-
-    fetchOrders();
-  }, [selectedMonth, selectedYear]);
-
-  // Selecting years for dropdown
   const years = Array.from(new Array(20), (val, index) => new Date().getFullYear() - index);
+  const [userInput, setUserInput] = useState({
+    year: years[0],
+    month: 1,
+    category: '',
+  });
+  const [categories, setCategories] = useState([]);
 
-  // Handling product selection for chart
-  const handleProductSelect = (productId) => {
-    setSelectedProduct(productId);
-    // Additional fetch or adjustments for chart can be made here
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/get-categories');
+      // const parsed = response.data.map(item => `${item.id}: ${item.name}`);
+      const parsed = response.data.map(item => ({
+        value: `${item.id}: ${item.name}`,
+        label: `${item.id}: ${item.name}`,
+      }));
+      setCategories(parsed);
+      // console.log("parsed list", parsed);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
   };
+
+  const handleChange = (e) => {
+    if (e.hasOwnProperty('target')) {
+      const { name, value } = e.target;
+      setUserInput(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      userInput.category = e.value;
+    }
+  };
+
+  const handleView = async (e) => {
+    e.preventDefault()
+    if (userInput.category == "") {
+      alert('Please enter a valid category');
+      return
+    }
+    try {
+      const response = await axios.get(`http://localhost:8080/sales/orders?year=${userInput.year}&month=${userInput.month}`);
+      setOrders(response.data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  }
 
   return (
     <CRow>
@@ -79,12 +106,22 @@ const SalesDashboard = () => {
           </CNav>
           <CCardHeader>
             <div className="d-flex align-items-center">
-              <CFormSelect className="w-auto" onChange={(e) => setSelectedYear(e.target.value)}>
+              <CFormSelect className="w-auto" name="year" onChange={handleChange}>
                 {years.map(year => <option key={year} value={year}>{year}</option>)}
               </CFormSelect>
-              <CFormSelect className="w-auto mx-2" onChange={(e) => setSelectedMonth(e.target.value)}>
+              <CFormSelect className="w-auto mx-2" name="month" onChange={handleChange}>
                 {Array.from(new Array(12), (v, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
               </CFormSelect>
+              <div className="w-auto mx-2" style={{ minWidth: '200px' }}>
+                <Select
+                  options={categories}  // Now using the transformed categories
+                  name='category'
+                  onChange={handleChange}
+                  isSearchable={true}
+                  placeholder="Select a category..."
+                />
+              </div>
+              <CButton color="primary" type="button" onClick={handleView}>조회</CButton>
             </div>
           </CCardHeader>
           <CCollapse visible={visibleTable}>

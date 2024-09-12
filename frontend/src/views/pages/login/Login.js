@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -18,6 +18,7 @@ import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
 
 const Login = () => {
+  const navigate = useNavigate();
   const [userLogin, setUserLogin] = useState({
     username: '',
     password: '',
@@ -37,11 +38,23 @@ const Login = () => {
       const response = await axios.post('http://localhost:8080/login/verify-user', userLogin, {
         headers: { 'Content-Type': 'application/json' },
       });
-      localStorage.setItem('authToken', response.data.token)
-      localStorage.setItem('tokenExpiry', Date.now() + 3600 * 1000) // Token expire in 1 hour
+      sessionStorage.setItem('authToken', response.data.authToken)
+      sessionStorage.setItem('tokenExpiry', response.data.tokenExpiry)
+      console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
+      e.preventDefault()
+      navigate('/');
+      window.location.reload(false);
     } catch (error) {
       console.error('Error logging in:', error);
       alert('Failed to login');
+    }
+  };
+
+  //add later to capture enterkey
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleLogin();
     }
   };
 
