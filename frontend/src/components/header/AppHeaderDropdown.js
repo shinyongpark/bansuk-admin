@@ -10,6 +10,7 @@ import {
   CDropdownToggle,
 } from '@coreui/react'
 import {
+  cilAddressBook,
   cilBell,
   cilCreditCard,
   cilCommentSquare,
@@ -56,6 +57,13 @@ const AppHeaderDropdown = () => {
         <CDropdownItem href="#">
           <CIcon icon={cilCommentSquare} className="me-2" />
           Comments
+          <CBadge color="warning" className="ms-2">
+            42
+          </CBadge>
+        </CDropdownItem>
+        <CDropdownItem href="#/register">
+          <CIcon icon={cilAddressBook} className="me-2" />
+          회원가입
           <CBadge color="warning" className="ms-2">
             42
           </CBadge>

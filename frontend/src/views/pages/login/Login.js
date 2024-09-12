@@ -40,10 +40,11 @@ const Login = () => {
       });
       sessionStorage.setItem('authToken', response.data.authToken)
       sessionStorage.setItem('tokenExpiry', response.data.tokenExpiry)
-      console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
-      e.preventDefault()
+      sessionStorage.setItem('registration', response.data.registration)
+
+      // console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
       navigate('/');
-      window.location.reload(false);
+      window.location.reload(false); //may need to change this
     } catch (error) {
       console.error('Error logging in:', error);
       alert('Failed to login');

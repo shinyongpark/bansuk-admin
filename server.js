@@ -294,7 +294,7 @@ app.get('/sales/orders', async (req, res) => {
         $lte: formatDate(endDate)
       }
     }).toArray();
-    console.log(orders)
+    // console.log("server.js/sales/orders", orders)
     res.json(orders);
   } catch (error) {
     console.error('Failed to fetch orders:', error);
@@ -321,22 +321,52 @@ app.get('/sales/product-details', async (req, res) => {
 
 app.post('/login/verify-user', async (req, res) => {
   const { username, password } = req.body;
-  console.log("server.js", process.env.SECRET_KEY)
-  // search from db
-  username_temp = 'aa'
-  password_temp = 'aa'
+  try {
+    // search from db
+    const member = await db.collection('members').findOne({ member_id: username });
+    // console.log("server.js/login/verify", member)
+    // console.log("server.js/login/verify", username, password, username == member.member_id, password == member.member_pass)
 
-  if (username == username_temp && password == password_temp) {
-    const tokenExpiry = Date.now() + 3600 * 1000 // Token expire in 1 hour
-    const authToken = crypto.randomBytes(32).toString('hex');
-    const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    if (username == member.member_id && password == member.member_pass) {
+      const tokenExpiry = Date.now() + 3600 * 1000 // Token expire in 1 hour
+      const authToken = crypto.randomBytes(32).toString('hex'); //later use userid to create this?
+      const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    //store login information
+      //store login information
 
-    // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
-    return res.status(201).json({ message: 'welcome!', authToken: authToken, tokenExpiry: tokenExpiry, userIp: userIp });
+      //allow tester to access registration
+      let registration = false;
+      if (member.member_id == "aa") {
+        registration = true;
+      }
+      // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
+      return res.status(201).json({ message: 'welcome!', authToken: authToken, tokenExpiry: tokenExpiry, userIp: userIp, registration: registration });
+    }
+    return res.status(404).send({ error: 'Login failed' });
+  } catch (error) {
+    return res.status(404).send({ err_msg: 'Login failed', error: error });
   }
-  return res.status(404).send({ error: 'Login failed' });
+});
+
+app.post('/register/userInfo', async (req, res) => {
+  const userInfo = req.body;
+  // console.log("serverjs userInfo:", userInfo)
+  try {
+    // search from db
+    const nextUID = await getNextUID('members'); //?? not working
+    const newUserInfo = {
+      uid: nextUID,
+      member_id: userInfo.username,
+      member_pass: userInfo.password,
+      member_name: userInfo.name,
+      member_email: userInfo.email
+    }
+    const member = await db.collection('members').insertOne(newUserInfo);
+    return res.status(201).json({ message: "successful" });
+
+  } catch (error) {
+    return res.status(404).send({ err_msg: 'Login failed', error: error });
+  }
 });
 
 

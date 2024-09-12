@@ -33,21 +33,28 @@ const App = () => {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isAuthenticated = () => {
-    return true //change this later
-    // const token = sessionStorage.getItem('authToken');
-    // const expiry = sessionStorage.getItem('tokenExpiry');
+    // return true //change this later
+    const token = sessionStorage.getItem('authToken');
+    const expiry = sessionStorage.getItem('tokenExpiry');
     // console.log("app.js", token, expiry)
 
-    // if (token && expiry && Date.now() < expiry) {
-    //   console.log("is authenticated");
-    //   return true;
-    // } else {
-    //   console.log("is not authenticated");
-    //   sessionStorage.removeItem('authToken');
-    //   sessionStorage.removeItem('tokenExpiry');
-    //   return false;
-    // }
+    if (token && expiry && Date.now() < expiry) {
+      console.log("is authenticated");
+      return true;
+    } else {
+      console.log("is not authenticated");
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('tokenExpiry');
+      return false;
+    }
   }
+
+  //check if user is allowed to access registration page
+  const authRegistration = () => {
+    console.log("app.js authRegistration", isAuthenticated() && sessionStorage.getItem('registration'))
+    return isAuthenticated() && sessionStorage.getItem('registration');
+  }
+
 
   return (
     <HashRouter>
@@ -60,7 +67,7 @@ const App = () => {
       >
         <Routes>
           <Route path="/login" element={!isAuthenticated() ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!isAuthenticated() ? <Register /> : <Navigate to="/" />} />
+          <Route path="/register" element={authRegistration() ? <Register /> : <Navigate to="/" />} />
           <Route path="/404" element={<Page404 />} />
           <Route path="/500" element={<Page500 />} />
           <Route path="*" element={isAuthenticated() ? <DefaultLayout /> : <Navigate to="/login" />} />
