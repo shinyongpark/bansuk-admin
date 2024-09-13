@@ -58,6 +58,7 @@ const PrimeCost = React.lazy(() => import('./views/products/primeCost/primeCost'
 
 // 판매량 관리
 const ViewSales = React.lazy(() => import('./views/sales/viewSales/viewSales'))
+const CustomerSupport = React.lazy(() => import('./views/sales/customerSupport/customerSupport'))
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
 const routes = [
@@ -111,7 +112,8 @@ const routes = [
   { path: '/products/edit-product', name: '입출고 입력', element: EditProduct },
   { path: '/products/add-product', name: '입출고 입력', element: AddProduct },
   { path: '/products/prime-cost', name: '원가 조회/수정', element: PrimeCost },
-  { path: '/sales/view-sales', name: '판매량 조회', element: ViewSales }
+  { path: '/sales/view-sales', name: '판매량 조회', element: ViewSales },
+  { path: '/sales/customer-support', name: '고객 관리', element: CustomerSupport }
 ]
 
 export default routes

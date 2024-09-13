@@ -114,7 +114,7 @@ const SalesDashboard = () => {
               </CFormSelect>
               <div className="w-auto mx-2" style={{ minWidth: '200px' }}>
                 <Select
-                  options={categories}  // Now using the transformed categories
+                  options={categories}
                   name='category'
                   onChange={handleChange}
                   isSearchable={true}

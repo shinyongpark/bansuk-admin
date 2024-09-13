@@ -14,7 +14,7 @@ import {
   CRow,
 } from '@coreui/react';
 
-const EditStock = () => {
+const EditProduct = () => {
   const [productDetails, setProductDetails] = useState({
     code: '',
     importType: '',
@@ -47,26 +47,26 @@ const EditStock = () => {
 
   const fetchCategories = async () => {
     try {
-        const response = await axios.get('http://localhost:8080/get-categories');
-        console.log('Fetched categories:', response.data);
-        setCategories(response.data);
+      const response = await axios.get('http://localhost:8080/get-categories');
+      console.log('Fetched categories:', response.data);
+      setCategories(response.data);
     } catch (error) {
-        console.error('Error fetching categories:', error);
+      console.error('Error fetching categories:', error);
     }
   };
 
   const fetchProducts = async (category) => {
     try {
-        const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
-        setProducts(response.data);
+      const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
+      setProducts(response.data);
     } catch (error) {
-        console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error);
     }
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-  
+
     if (name === "productCode") {
       // When a product code is selected, set the code and update other fields
       const selectedProduct = products.find(product => product.id === value);
@@ -86,7 +86,7 @@ const EditStock = () => {
       }));
     }
   };
-  
+
 
 
   const handleSubmit = async (e) => {
@@ -201,4 +201,4 @@ const EditStock = () => {
   )
 }
 
-export default EditStock
+export default EditProduct

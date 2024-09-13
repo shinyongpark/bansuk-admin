@@ -351,9 +351,14 @@ const _nav = [
       },
       {
         component: CNavItem,
-        name: '원가 관리',
-        to: '/theme/typography',
+        name: '고객 관리',
+        to: '/sales/customer-support',
       },
+      // {
+      //   component: CNavItem,
+      //   name: '원가 관리',
+      //   to: '/theme/typography',
+      // },
     ],
   },
 ]
