@@ -73,18 +73,31 @@ app.get('/get-products', async (req, res) => {
       return map;
     }, {});
 
-    // Combine product data with stock data
-    const enrichedProducts = products.map(product => ({
-      id: product.good_id,
-      productName: product.good_name,
-      nickname: product.good_alias,
-      factory: product.good_factory,
-      good_kc: product.good_kc,
-      import: product.stock_kind,
-      remarks: product.good_remarks,
-      coupang: product.good_remarks2,
-      primeCost: product.prime_cost,
-      stock: stockMap[product.good_id] || 'N/A'  // Assign 'N/A' if no stock data exists
+    const enrichedProducts = await Promise.all(products.map(async product => {
+      const recentIncoming = await db.collection('incoming_goods').find({ code: product.good_id }).sort({ date: -1 }).limit(1).toArray();
+      let recentIncomingDate = '-';
+      let recentIncomingQuantity = '-';
+      if (recentIncoming.length > 0) {
+        const timestamp = parseInt(recentIncoming[0].date);
+        if (!isNaN(timestamp)) {
+          recentIncomingDate = new Date(timestamp * 1000).toISOString().split('T')[0];
+        }
+        recentIncomingQuantity = recentIncoming[0].stocks || '-';
+      }
+      return {
+        id: product.good_id,
+        productName: product.good_name,
+        nickname: product.good_alias,
+        factory: product.good_factory,
+        good_kc: product.good_kc,
+        import: product.stock_kind,
+        remarks: product.good_remarks,
+        coupang: product.good_remarks2,
+        primeCost: product.prime_cost,
+        stock: stockMap[product.good_id] || 'N/A',
+        recentIncomingDate,
+        recentIncomingQuantity,
+      };
     }));
     
     res.json(enrichedProducts);

@@ -94,8 +94,8 @@ const ProductsByCategory = () => {
                         <CTableDataCell>{product.good_kc}</CTableDataCell>
                         <CTableDataCell>{product.stock}</CTableDataCell>
                         <CTableDataCell>{product.import === '0' ? '국내' : '수입'}</CTableDataCell>
-                        <CTableDataCell>{'-'}</CTableDataCell> {/* Placeholder for 최근 입고 날짜 */}
-                        <CTableDataCell>{'-'}</CTableDataCell> {/* Placeholder for 최근 입고량 */}
+                        <CTableDataCell>{product.recentIncomingDate}</CTableDataCell>
+                        <CTableDataCell>{product.recentIncomingQuantity}</CTableDataCell>
                         <CTableDataCell>{product.remarks}</CTableDataCell>
                         <CTableDataCell>{product.coupang}</CTableDataCell>
                       </CTableRow>
