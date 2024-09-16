@@ -123,6 +123,10 @@ app.post('/add-incoming-goods', async (req, res) => {
   try {
     const nextUID = await getNextUID('incoming_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
+    
+    // Convert ISO 8601 date string to Unix timestamp
+    const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
+
     const newRecord = {
       uid: nextUID.toString(),
       cate_id,
@@ -132,13 +136,21 @@ app.post('/add-incoming-goods', async (req, res) => {
       stocks,
       warehouse: '반석',
       comment,
-      date,
+      date: dateTimestamp.toString(),  // Store the date as a Unix timestamp
       state: 'in',
       good_class: '0',
       good_exist: 'y',
       good_rocket: 'n'
     };
     await db.collection('incoming_goods').insertOne(newRecord);
+
+    // Update stock count
+    await db.collection('stock_count').updateOne(
+      { _id: code },
+      { $inc: { stock: parseInt(stocks) } },
+      { upsert: true }
+    );
+
     res.status(201).json({ message: 'Incoming goods record added successfully!' });
   } catch (error) {
     console.error('Failed to add incoming goods:', error);
@@ -146,12 +158,13 @@ app.post('/add-incoming-goods', async (req, res) => {
   }
 });
 
+
 app.post('/add-outgoing-goods', async (req, res) => {
   try {
-    console.log('outgoing post request reached')
     const nextUID = await getNextUID('outgoing_goods');
-    console.log('nextUID = ', nextUID.toString())
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
+    const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
+
     const newRecord = {
       uid: nextUID.toString(),
       state: 'out',
@@ -162,13 +175,21 @@ app.post('/add-outgoing-goods', async (req, res) => {
       stocks,
       warehouse: '반석',
       comment,
-      date,
+      date: dateTimestamp.toString(),
       category: '00000000',
       good_class: '0',
       good_exist: 'y',
       good_rocket: 'n'
     };
     await db.collection('outgoing_goods').insertOne(newRecord);
+
+    // Update stock count
+    await db.collection('stock_count').updateOne(
+      { _id: code },
+      { $inc: { stock: -parseInt(stocks) } },
+      { upsert: true }
+    );
+
     res.status(201).json({ message: 'Outgoing goods record added successfully!' });
   } catch (error) {
     console.error('Failed to add outgoing goods:', error);
