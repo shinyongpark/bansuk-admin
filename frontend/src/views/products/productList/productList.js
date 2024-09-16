@@ -37,7 +37,9 @@ const ProductsByCategory = () => {
   const fetchProducts = async (categoryId) => {
     try {
       const response = await axios.get(`http://localhost:8080/get-products?category=${categoryId}`);
-      setProducts(response.data);
+      // Filter products to include only those with stock available
+      const filteredProducts = response.data.filter(product => product.stock !== 'N/A');
+      setProducts(filteredProducts);
     } catch (error) {
       console.error('Error fetching products for category:', categoryId, error);
     }
@@ -90,7 +92,7 @@ const ProductsByCategory = () => {
                         <CTableDataCell>{product.id}</CTableDataCell>
                         <CTableDataCell>{product.factory}</CTableDataCell>
                         <CTableDataCell>{product.good_kc}</CTableDataCell>
-                        <CTableDataCell>{'-'}</CTableDataCell> {/* Placeholder for 재고량 */}
+                        <CTableDataCell>{product.stock}</CTableDataCell>
                         <CTableDataCell>{product.import === '0' ? '국내' : '수입'}</CTableDataCell>
                         <CTableDataCell>{'-'}</CTableDataCell> {/* Placeholder for 최근 입고 날짜 */}
                         <CTableDataCell>{'-'}</CTableDataCell> {/* Placeholder for 최근 입고량 */}

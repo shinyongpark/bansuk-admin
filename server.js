@@ -56,15 +56,25 @@ app.get('/get-categories', async (req, res) => {
   }
 });
 
-
 app.get('/get-products', async (req, res) => {
   const { category } = req.query;
   if (!category) {
     return res.status(400).send({ error: 'Category ID is required' });
   }
   try {
+    // Fetch products based on the category
     const products = await db.collection('product_list').find({ cate_id: category }).toArray();
-    res.json(products.map(product => ({
+    // Fetch stock counts and map them into an object for quick lookup
+    const stockCounts = await db.collection('stock_count').find({
+      _id: { $in: products.map(p => p.good_id) }
+    }).toArray();
+    const stockMap = stockCounts.reduce((map, stock) => {
+      map[stock._id] = stock.stock;
+      return map;
+    }, {});
+
+    // Combine product data with stock data
+    const enrichedProducts = products.map(product => ({
       id: product.good_id,
       productName: product.good_name,
       nickname: product.good_alias,
@@ -74,12 +84,16 @@ app.get('/get-products', async (req, res) => {
       remarks: product.good_remarks,
       coupang: product.good_remarks2,
       primeCost: product.prime_cost,
-    })));
+      stock: stockMap[product.good_id] || 'N/A'  // Assign 'N/A' if no stock data exists
+    }));
+    
+    res.json(enrichedProducts);
   } catch (error) {
     console.error('Failed to fetch products:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 async function getNextUID(collectionName) {
   try {
