@@ -34,7 +34,7 @@ const App = () => {
 
   const isAuthenticated = () => {
     // return true //change this later
-    const token = sessionStorage.getItem('authToken');
+    const token = sessionStorage.getItem('authUser');
     const expiry = sessionStorage.getItem('tokenExpiry');
     // console.log("app.js", token, expiry)
 
@@ -43,7 +43,7 @@ const App = () => {
       return true;
     } else {
       console.log("is not authenticated");
-      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('authUser');
       sessionStorage.removeItem('tokenExpiry');
       return false;
     }
@@ -51,8 +51,9 @@ const App = () => {
 
   //check if user is allowed to access registration page
   const authRegistration = () => {
-    console.log("app.js authRegistration", isAuthenticated() && sessionStorage.getItem('registration'))
-    return isAuthenticated() && sessionStorage.getItem('registration');
+    const registration = sessionStorage.getItem('authUser') === "true"
+    // console.log(isAuthenticated() && registration)
+    return isAuthenticated() && registration;
   }
 
 

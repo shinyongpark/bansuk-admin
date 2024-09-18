@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom'
+// const jwt = require('jsonwebtoken');
 import {
   CButton,
   CCard,
@@ -37,10 +38,10 @@ const Login = () => {
     try {
       const response = await axios.post('http://localhost:8080/login/verify-user', userLogin, {
         headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
       });
-      sessionStorage.setItem('authToken', response.data.authToken)
-      sessionStorage.setItem('tokenExpiry', response.data.tokenExpiry)
-      sessionStorage.setItem('registration', response.data.registration)
+      sessionStorage.setItem('tokenExpiry', Date.now() + 3600 * 1000) // Token expire in 1 hour
+      sessionStorage.setItem('authUser', response.data.authUser)
 
       // console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
       navigate('/');
@@ -64,12 +65,13 @@ const Login = () => {
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
         <CRow className="justify-content-center">
-          <CCol md={8}>
+          <CCol md={6}>
             <CCardGroup>
               <CCard className="p-4">
                 <CCardBody>
                   <CForm>
-                    <h1>Login</h1>
+                    <h1>반석 스포츠</h1>
+                    {/* <h2>Login</h2> */}
                     <p className="text-body-secondary">Sign In to your account</p>
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
@@ -96,29 +98,8 @@ const Login = () => {
                           Login
                         </CButton>
                       </CCol>
-                      <CCol xs={6} className="text-right">
-                        <CButton color="link" className="px-0">
-                          Forgot password?
-                        </CButton>
-                      </CCol>
                     </CRow>
                   </CForm>
-                </CCardBody>
-              </CCard>
-              <CCard className="text-white bg-primary py-5" style={{ width: '44%' }}>
-                <CCardBody className="text-center">
-                  <div>
-                    <h2>Sign up</h2>
-                    <p>
-                      Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                      tempor incididunt ut labore et dolore magna aliqua.
-                    </p>
-                    <Link to="/register">
-                      <CButton color="primary" className="mt-3" active tabIndex={-1}>
-                        Register Now!
-                      </CButton>
-                    </Link>
-                  </div>
                 </CCardBody>
               </CCard>
             </CCardGroup>

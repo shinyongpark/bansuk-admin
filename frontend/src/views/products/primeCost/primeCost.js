@@ -71,7 +71,7 @@ const ProductsByCategory = () => {
     }
     try {
       // Assume newCost is converted to a number if it's a valid number string
-      const newCost = parseFloat(updateProducts[id]).toFixed(2); // Keeping two decimals for currency values
+      const newCost = parseFloat(updateProducts[id]).toFixed(0); // Keeping two decimals for currency values
 
       // Sending the updated cost to the server
       const response = await axios.post('http://localhost:8080/update-product-cost', {
@@ -118,13 +118,7 @@ const ProductsByCategory = () => {
                       <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
                       <CTableHeaderCell scope="col">총액</CTableHeaderCell>
                       <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">
-                        변경 원가
-                        <CFormInput type="text" placeholder="Enter new cost" />
-                      </CTableHeaderCell>
-                      <CTableHeaderCell scope="col">
-                        <CButton color="primary">확인</CButton>
-                      </CTableHeaderCell>
+                      <CTableHeaderCell scope="col">변경 원가</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>

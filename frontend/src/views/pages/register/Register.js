@@ -33,6 +33,7 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault()
     //check userinput or backend??
+    console.log(sessionStorage, (sessionStorage.getItem('authUser')), typeof sessionStorage.getItem('authUser'))
     console.log("registerjs userInfo:", userInfo)
     if (Object.keys(userInfo).length != 5) {
       alert('필드를 모두 입력해주세요');
@@ -40,12 +41,17 @@ const Register = () => {
     } else if (userInfo.password != userInfo.repeatPassword) {
       alert('패드워드가 동일하지 않습니다');
       return;
+    } else if (sessionStorage.getItem('authUser') !== "true") {
+      alert('해당 계정은 회원을 등록할 수 없습니다')
+      return;
     }
+
 
     //post userinfo
     try {
       const response = await axios.post('http://localhost:8080/register/userInfo', userInfo, {
         headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
       });
       alert(`${userInfo.name}이/가 등록되었습니다`);
       navigate('/');

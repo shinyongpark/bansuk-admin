@@ -1,9 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const crypto = require('crypto');
 const path = require('path');
 const app = express();
+
+// for login / register
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+
 
 // Connect to MongoDB
 let connectDB = require('./config/db'); // Adjust path as necessary
@@ -20,9 +25,14 @@ connectDB.then((client) => {
 });
 
 // Middleware
-app.use(express.json());
-app.use(cors());
 app.use(express.static(path.join(__dirname, 'frontend/build')));
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  origin: 'http://localhost:3000', // frontend URL
+  credentials: true,
+}));
 
 // API endpoints
 app.get('/sales/view-sales', async (req, res) => {
@@ -99,7 +109,7 @@ app.get('/get-products', async (req, res) => {
         recentIncomingQuantity,
       };
     }));
-    
+
     res.json(enrichedProducts);
   } catch (error) {
     console.error('Failed to fetch products:', error);
@@ -123,7 +133,7 @@ app.post('/add-incoming-goods', async (req, res) => {
   try {
     const nextUID = await getNextUID('incoming_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
-    
+
     // Convert ISO 8601 date string to Unix timestamp
     const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
 
@@ -367,28 +377,32 @@ app.get('/sales/product-details', async (req, res) => {
   }
 });
 
+const secretKey = process.env.JWT_SECRET_KEY
+const saltRounds = Number(process.env.SALT);
 app.post('/login/verify-user', async (req, res) => {
   const { username, password } = req.body;
   try {
     // search from db
     const member = await db.collection('members').findOne({ member_id: username });
-    // console.log("server.js/login/verify", member)
-    // console.log("server.js/login/verify", username, password, username == member.member_id, password == member.member_pass)
+    const match = await bcrypt.compare(password, member.member_pass);
+    // console.log("serverjs", member, match)
 
-    if (username == member.member_id && password == member.member_pass) {
-      const tokenExpiry = Date.now() + 3600 * 1000 // Token expire in 1 hour
-      const authToken = crypto.randomBytes(32).toString('hex'); //later use userid to create this?
+    if (match) {
+      const secretToken = jwt.sign({ userId: member.member_id }, secretKey, { expiresIn: '1h' });
       const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const authUser = process.env.AUTH_USER.split(',').includes(member.member_id).toString();
 
       //store login information
+      db.collection("user_login").insertOne({
+        userId: member.member_id,
+        userIp: userIp,
+        time: new Date()
+      });
 
-      //allow tester to access registration
-      let registration = false;
-      if (member.member_id == "aa") {
-        registration = true;
-      }
       // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
-      return res.status(201).json({ message: 'welcome!', authToken: authToken, tokenExpiry: tokenExpiry, userIp: userIp, registration: registration });
+      res.cookie('token', secretToken, { httpOnly: true, secure: false, sameSite: 'Strict' }); //change secure to true when using https
+      res.cookie('authUser', authUser, { httpOnly: true, secure: false, sameSite: 'Strict' }); //change secure to true when using https
+      return res.status(201).json({ message: 'welcome!', authUser: authUser });
     }
     return res.status(404).send({ error: 'Login failed' });
   } catch (error) {
@@ -397,28 +411,39 @@ app.post('/login/verify-user', async (req, res) => {
 });
 
 app.post('/register/userInfo', async (req, res) => {
-  const userInfo = req.body;
   // console.log("serverjs userInfo:", userInfo)
   try {
-    // search from db
-    const nextUID = await getNextUID('members'); //?? not working
+    //verify user
+    // console.log("/register/userInfo", req.cookies)
+    if (req.cookies.authUser !== "true") {
+      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" });
+    }
+    const token = req.cookies.token;
+    jwt.verify(token, secretKey);
+
+    //store the hashed pw
+    const userInfo = req.body;
+    const hashedPassword = await bcrypt.hash(userInfo.password, saltRounds)
     const newUserInfo = {
-      uid: nextUID,
       member_id: userInfo.username,
-      member_pass: userInfo.password,
+      member_pass: hashedPassword,
       member_name: userInfo.name,
       member_email: userInfo.email
     }
+
     const member = await db.collection('members').insertOne(newUserInfo);
     return res.status(201).json({ message: "successful" });
 
-  } catch (error) {
+  } catch (err) {
     return res.status(404).send({ err_msg: 'Login failed', error: error });
   }
+
 });
 
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
+  var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+  console.log("unknown request:", fullUrl);
+  return res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
 });

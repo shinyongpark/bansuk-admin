@@ -163,8 +163,8 @@ const CustomerSupport = () => {
                                     </div>
                                     <div style={{ flex: 2.5 }}>
                                         <DatePicker
-                                            selected={productDetails.startDate}
-                                            onChange={date => setProductDetails({ ...productDetails, startDate: date })}
+                                            selected={productDetails.endDate}
+                                            onChange={date => setProductDetails({ ...productDetails, endDate: date })}
                                             dateFormat="yyyy-MM-dd"
                                             placeholderText="종료: YYYY-MM-DD"
                                         />
