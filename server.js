@@ -66,6 +66,27 @@ app.get('/get-categories', async (req, res) => {
   }
 });
 
+app.get('/get-products-list', async (req, res) => {
+  try {
+    // Fetch products based on the category
+    const products = await db.collection('product_list').find().sort({ cate_id: 1 }).toArray();
+    if (products.length === 0) {
+      console.log('No product list found in the database.');
+    }
+    // Fetch stock counts and map them into an object for quick lookup
+    const product_list = products.map(product => ({
+      cate_id: product.cate_id.toString(),  // Ensuring the ID is a string
+      good_id: product.good_id.toString(),
+      good_name: product.good_name.toString()
+    }));
+    // console.log(product_list)
+    res.json(product_list);
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
 app.get('/get-products', async (req, res) => {
   const { category } = req.query;
   if (!category) {
@@ -392,11 +413,15 @@ app.post('/login/verify-user', async (req, res) => {
       const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
       const authUser = process.env.AUTH_USER.split(',').includes(member.member_id).toString();
 
+      const utc = Date.now()
+      const kr_time_diff = 9 * 60 * 60 * 1000;
+      const kr_curr = new Date(utc + kr_time_diff); //always convert to kr time? or use local time?
+
       //store login information
       db.collection("user_login").insertOne({
         userId: member.member_id,
         userIp: userIp,
-        time: new Date()
+        time_kr: kr_curr
       });
 
       // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
@@ -422,20 +447,22 @@ app.post('/register/userInfo', async (req, res) => {
     jwt.verify(token, secretKey);
 
     //store the hashed pw
+    const utc = Date.now()
+    const kr_time_diff = 9 * 60 * 60 * 1000;
+    const kr_curr = new Date(utc + kr_time_diff); //always convert to kr time? or use local time?
     const userInfo = req.body;
     const hashedPassword = await bcrypt.hash(userInfo.password, saltRounds)
     const newUserInfo = {
       member_id: userInfo.username,
       member_pass: hashedPassword,
       member_name: userInfo.name,
-      member_email: userInfo.email
+      created_time_kr: kr_curr
     }
-
     const member = await db.collection('members').insertOne(newUserInfo);
     return res.status(201).json({ message: "successful" });
 
   } catch (err) {
-    return res.status(404).send({ err_msg: 'Login failed', error: error });
+    return res.status(404).send({ err_msg: 'Login failed', error: err });
   }
 
 });

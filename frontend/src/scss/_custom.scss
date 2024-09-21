@@ -1,2 +1,110 @@
 // Here you can add other styles
-@import "react-datepicker/dist/react-datepicker.css"
+@import "react-datepicker/dist/react-datepicker.css";
+
+.info-box {
+    padding: 5px;
+    flex: 1;
+    height: 32px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.custom-header {
+    background-color: #8450ff;
+    padding: 10px;
+    border-radius: 5px;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 1.25rem;
+    text-align: center;
+}
+
+.custom-header-consultation {
+    background-color: #3b52ff;
+    padding: 10px;
+    border-radius: 5px;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 1.25rem;
+    text-align: center;
+}
+
+.scrollable-textarea {
+    height: 100px;
+    overflow-y: auto;
+    resize: none;
+}
+
+.custom-table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+
+.custom-table th,
+.custom-table td {
+    padding: 0.5rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.custom-table tr.success-row td {
+    background-color: #d4edda !important;
+}
+
+.custom-table tr.failure-row td {
+    background-color: #f8d7da !important;
+}
+
+.custom-table tr.in-progress-row td {
+    background-color: #fff3cd !important;
+}
+
+.custom-table tr.other td {
+    background-color: white !important;
+}
+
+// .table-container {
+//     height: 200px;  /* Limit the overall table container height */
+//     overflow-y: auto;  /* Make the container scrollable */
+// }
+
+// .custom-table {
+//     width: 100%;
+//     margin-bottom: 1rem;
+//     border-collapse: collapse;  /* Standard table layout */
+//     table-layout: fixed;  /* Ensure columns align correctly */
+// }
+
+// .custom-table thead th {
+//     position: sticky;
+//     top: 0;
+//     background-color: white;
+//     z-index: 2;
+// }
+
+// .custom-table tbody tr.success-row td {
+//     background-color: #d4edda !important;
+// }
+
+// .custom-table tbody tr.failure-row td {
+//     background-color: #f8d7da !important;
+// }
+
+// .custom-table tbody tr.in-progress-row td {
+//     background-color: #fff3cd !important;
+// }
+
+// .custom-table tbody tr.other td {
+//     background-color: white !important;
+// }
+
+// .custom-table th, .custom-table td {
+//     padding: 8px;
+//     border: 1px solid #dee2e6;  /* Table borders */
+// }
+
+// .custom-table tbody tr:nth-of-type(odd) td {
+//     background-color: rgba(0, 0, 0, 0.05);
+// }

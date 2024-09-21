@@ -33,9 +33,9 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault()
     //check userinput or backend??
-    console.log(sessionStorage, (sessionStorage.getItem('authUser')), typeof sessionStorage.getItem('authUser'))
-    console.log("registerjs userInfo:", userInfo)
-    if (Object.keys(userInfo).length != 5) {
+    // console.log(sessionStorage, (sessionStorage.getItem('authUser')), typeof sessionStorage.getItem('authUser'))
+    // console.log("registerjs userInfo:", userInfo)
+    if (Object.keys(userInfo).length != 4) {
       alert('필드를 모두 입력해주세요');
       return;
     } else if (userInfo.password != userInfo.repeatPassword) {
@@ -56,8 +56,12 @@ const Register = () => {
       alert(`${userInfo.name}이/가 등록되었습니다`);
       navigate('/');
     } catch (error) {
-      console.error('Error registration:', error);
-      alert('Failed to Register');
+      if (error?.response?.data?.error?.code === 11000) {
+        alert('아이디(Username)가 중복됐습니다');
+      } else {
+        console.error('Error registration:', error);
+        alert('회원가입에 실패했습니다. 서버에 접속하여 자세한 사항을 확인해주세요');
+      }
       return;
     }
   };
@@ -98,10 +102,6 @@ const Register = () => {
                       <CIcon icon={cilUser} />
                     </CInputGroupText>
                     <CFormInput placeholder="Username" autoComplete="username" name="username" onChange={handleChange} />
-                  </CInputGroup>
-                  <CInputGroup className="mb-3">
-                    <CInputGroupText>@</CInputGroupText>
-                    <CFormInput placeholder="Email" autoComplete="email" name="email" onChange={handleChange} />
                   </CInputGroup>
                   <CInputGroup className="mb-3">
                     <CInputGroupText>
