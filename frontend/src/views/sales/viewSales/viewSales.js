@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CButton, CCard, CCardBody, CCardHeader, CCol, CFormSelect, CRow, CCollapse, CTable, CTableBody, CTableDataCell, CTableHead, CTableHeaderCell, CTableRow } from '@coreui/react';
+import { CChartLine } from '@coreui/react-chartjs';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -43,6 +44,31 @@ const SalesData = () => {
     }
   };
 
+  const getRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };  
+
+  const getChartData = () => {
+    const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1); // Days of the month
+    const datasets = salesData.map(product => {
+      const productColor = getRandomColor(); // Assign a random color or use a color from a predefined set
+      return {
+        label: product.productName,
+        backgroundColor: productColor,
+        borderColor: productColor,
+        fill: false,
+        data: product.dailySales.map(sale => sale.count),
+      };
+    });
+  
+    return { labels, datasets };
+  };  
+
   return (
     <CRow>
       <CCol xs={12}>
@@ -68,6 +94,39 @@ const SalesData = () => {
           </CCardHeader>
           <CCollapse visible={visibleTable}>
             <CCardBody>
+              <CChartLine
+                data={getChartData()}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      display: true,
+                    },
+                    tooltip: {
+                      mode: 'index',
+                      intersect: false,
+                    },
+                  },
+                  scales: {
+                    x: {  // Notice the change from 'xAxes' to 'x'
+                      display: true,
+                      title: {
+                        display: true,
+                        text: 'Day of the Month'
+                      }
+                    },
+                    y: {  // Notice the change from 'yAxes' to 'y'
+                      display: true,
+                      title: {
+                        display: true,
+                        text: 'Sales Count'
+                      }
+                    }
+                  }
+                }}
+              />
+
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
@@ -91,6 +150,7 @@ const SalesData = () => {
                 </CTableBody>
               </CTable>
             </CCardBody>
+
           </CCollapse>
         </CCard>
       </CCol>
