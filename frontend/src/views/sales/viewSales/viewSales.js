@@ -71,18 +71,16 @@ const SalesData = () => {
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell scope="col">Product Name</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Import Type</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
                     {Array.from({ length: daysInMonth }, (_, i) => <CTableHeaderCell key={i}>{i + 1}</CTableHeaderCell>)}
-                    <CTableHeaderCell scope="col">Total Sales</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">Stock</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">총판매</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">재고</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
                   {salesData.map((data, index) => (
                     <CTableRow key={index}>
                       <CTableDataCell>{data.productName}</CTableDataCell>
-                      <CTableDataCell>{data.importType}</CTableDataCell>
                       {data.dailySales.map((sale, idx) => (
                         <CTableDataCell key={idx}>{sale.count}</CTableDataCell>
                       ))}

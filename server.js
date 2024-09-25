@@ -34,23 +34,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// API endpoints
-app.get('/sales/view-sales', async (req, res) => {
-  try {
-    const data = await db.collection('orders').find().toArray();
-    console.log(data);
-    res.json({ orders: data });
-  } catch (error) {
-    console.error('Failed to fetch orders:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
 app.get('/get-categories', async (req, res) => {
-  console.log('get category api reached.');
+  // console.log('get category api reached.');
   try {
     const data = await db.collection('product_category').find().toArray();
-    console.log('Data fetched:', data);  // Log the raw data fetched from MongoDB
+    // console.log('Data fetched:', data);  // Log the raw data fetched from MongoDB
     if (data.length === 0) {
       console.log('No categories found in the database.');
     }
@@ -58,7 +46,7 @@ app.get('/get-categories', async (req, res) => {
       id: category.cate_id.toString(),  // Ensuring the ID is a string
       name: category.cate_name
     }));
-    console.log('Categories to send:', categories);  // Log the processed categories
+    // console.log('Categories to send:', categories);  // Log the processed categories
     res.json(categories);
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -404,8 +392,13 @@ app.get('/get-sales-data', async (req, res) => {
     return res.status(400).json({ message: 'Year, month, and category are required' });
   }
   try {
-    const startDate = new Date(year, month - 1, 1).getTime() / 1000;
-    const endDate = new Date(year, month, 0).getTime() / 1000;
+    // Convert to integers to work with Unix timestamps properly
+    const startMonth = new Date(year, month - 1, 1);
+    const endMonth = new Date(year, month, 0);
+    const startDate = Math.floor(startMonth.getTime() / 1000);
+    const endDate = Math.floor(endMonth.getTime() / 1000);
+
+    console.log('Start and End Dates:', startDate, endDate);
 
     // Fetch all products within the category
     const products = await db.collection('product_list').find({ cate_id: category }).toArray();
@@ -419,15 +412,19 @@ app.get('/get-sales-data', async (req, res) => {
         }
       },
       {
-        $addFields: { convertedDate: { $toLong: "$date" } }
+        $addFields: {
+          convertedDate: {
+            $toDate: { $add: [{ $multiply: [{ $toInt: "$date" }, 1000] }, 86400000] } // Adding one day in milliseconds to correct off-by-one error
+          }
+        }
       },
       {
         $group: {
           _id: {
             code: "$code",
-            day: { $dayOfMonth: { $toDate: { $multiply: ["$convertedDate", 1000] } } }
+            day: { $dayOfMonth: "$convertedDate" } // Now calculating the day from the adjusted date
           },
-          dailySales: { $sum: "$quantity" }
+          dailySales: { $sum: { $toInt: "$stocks" } }
         }
       },
       {
@@ -437,8 +434,10 @@ app.get('/get-sales-data', async (req, res) => {
         }
       }
     ]).toArray();
+    
+    
 
-    // Map the sales data to a dictionary for quick lookup
+    // Prepare the sales map
     const salesMap = salesData.reduce((acc, item) => {
       acc[item._id] = item.salesByDay.reduce((map, daySale) => {
         map[daySale.day] = daySale.count;
@@ -448,19 +447,19 @@ app.get('/get-sales-data', async (req, res) => {
     }, {});
 
     // Prepare final data array including products with no sales
-    const numDays = new Date(year, month, 0).getDate();
+    const numDays = endMonth.getDate();
     const finalData = products.map(product => ({
       category: product.cate_id,
       productName: product.good_name,
-      importType: product.stock_kind, // Assuming 'stock_kind' is import type
+      importType: product.stock_kind,
       dailySales: Array.from({ length: numDays }, (_, i) => ({
         day: i + 1,
         count: salesMap[product.good_id] ? salesMap[product.good_id][i + 1] || 0 : 0
       })),
       totalSales: Object.values(salesMap[product.good_id] || {}).reduce((a, b) => a + b, 0),
-      stock: product.stock || 'N/A' // Assuming there is a 'stock' field
+      stock: product.stock || 'N/A'
     }));
-    console.log(finalData.dailySales)
+    console.log(finalData[3].productName, finalData[3].dailySales)
     res.json(finalData);
   } catch (error) {
     console.error('Failed to fetch sales data:', error);
