@@ -13,416 +13,523 @@ import {
     CFormInput,
     CFormLabel,
     CFormSelect,
+    CModal,
+    CModalHeader,
+    CModalTitle,
+    CModalBody,
+    CModalFooter,
+    CTable,
+    CTableHead,
+    CTableBody,
+    CTableRow,
+    CTableHeaderCell,
+    CTableDataCell,
     CRow,
+    CSpinner
 } from '@coreui/react';
 
 const CustomerSupport = () => {
-    const companies = ['Company A', 'Company B', 'Company C']
-    // const products = ['Product A', 'Product B', 'Product C']
+    // page 1 & other option lists
+    const [companies, setCompanies] = useState([])
     const [products, setProducts] = useState([]);
-    const [newConsultations, setNewConsultations] = useState([]);
-    // const [consultations, setConsultations] = useState([]);
-    const [consultations_type1, setConsultations_type1] = useState([]);
-    const [consultations_type2, setConsultations_type2] = useState([]);
-    // const [tableData, setTableData] = useState([]);
-    const [selectedRow, setSelectedRow] = useState(null);
-    const [selectedRow_Consult, setSelectedRow_Consult] = useState(null);
-    const tableData = [
-        {
-            company: 'Company A',
-            sendDate: '2024-09-01',
-            buyerName: 'John Doe',
-            recipientName: 'Jane Smith',
-            buyerPhone1: '010-1234-5678',
-            recipientPhone1: '010-8765-4321',
-            productName: 'Product A',
-            invoiceNo: 'INV12345',
-            request: 'No special requests',
-            deliveryFeeType: 'Prepaid',
-            supplyPrice: '10000',
-            salePrice: '12000',
-            paymentAmount: '12000',
-            buyerPhone2: '010-5678-1234',
-            recipientPhone2: '010-4321-8765',
-            productNo: 'PRD1001',
-            orderNo: 'ORD2001',
-            postalCode: '12345',
-            address: '123 Main St, City A'
-        },
-        {
-            company: 'Company B',
-            sendDate: '2024-09-02',
-            buyerName: 'Alice Johnson',
-            recipientName: 'Bob Williams',
-            buyerPhone1: '010-9876-5432',
-            recipientPhone1: '010-6543-7890',
-            productName: 'Product B',
-            invoiceNo: 'INV12346',
-            request: 'Gift wrap',
-            deliveryFeeType: 'COD',
-            supplyPrice: '15000',
-            salePrice: '17000',
-            paymentAmount: '17000',
-            buyerPhone2: '010-5432-9876',
-            recipientPhone2: '010-7890-6543',
-            productNo: 'PRD1002',
-            orderNo: 'ORD2002',
-            postalCode: '54321',
-            address: '456 Oak St, City B'
-        },
-        // Add more rows similarly...
-        {
-            company: 'Company C',
-            sendDate: '2024-09-03',
-            buyerName: 'Charlie Brown',
-            recipientName: 'Lucy Van Pelt',
-            buyerPhone1: '010-1111-2222',
-            recipientPhone1: '010-3333-4444',
-            productName: 'Product C',
-            invoiceNo: 'INV12347',
-            request: 'Handle with care',
-            deliveryFeeType: 'Prepaid',
-            supplyPrice: '20000',
-            salePrice: '22000',
-            paymentAmount: '22000',
-            buyerPhone2: '010-2222-1111',
-            recipientPhone2: '010-4444-3333',
-            productNo: 'PRD1003',
-            orderNo: 'ORD2003',
-            postalCode: '11111',
-            address: '789 Pine St, City C'
-        },
-        {
-            company: 'Company D',
-            sendDate: '2024-09-04',
-            buyerName: 'David Kim',
-            recipientName: 'Emma Lee',
-            buyerPhone1: '010-5555-6666',
-            recipientPhone1: '010-7777-8888',
-            productName: 'Product D',
-            invoiceNo: 'INV12348',
-            request: 'Leave at the door',
-            deliveryFeeType: 'COD',
-            supplyPrice: '5000',
-            salePrice: '7000',
-            paymentAmount: '7000',
-            buyerPhone2: '010-6666-5555',
-            recipientPhone2: '010-8888-7777',
-            productNo: 'PRD1004',
-            orderNo: 'ORD2004',
-            postalCode: '22222',
-            address: '321 Cedar St, City D'
-        },
-        {
-            company: 'Company E',
-            sendDate: '2024-09-05',
-            buyerName: 'Olivia Jones',
-            recipientName: 'Ethan Thomas',
-            buyerPhone1: '010-9999-0000',
-            recipientPhone1: '010-1234-4321',
-            productName: 'Product E',
-            invoiceNo: 'INV12349',
-            request: 'Call before delivery',
-            deliveryFeeType: 'Prepaid',
-            supplyPrice: '30000',
-            salePrice: '32000',
-            paymentAmount: '32000',
-            buyerPhone2: '010-0000-9999',
-            recipientPhone2: '010-4321-1234',
-            productNo: 'PRD1005',
-            orderNo: 'ORD2005',
-            postalCode: '33333',
-            address: '654 Birch St, City E'
-        },
-        {
-            company: 'Company F',
-            sendDate: '2024-09-06',
-            buyerName: 'Sophia Martinez',
-            recipientName: 'Liam Gonzalez',
-            buyerPhone1: '010-2468-1357',
-            recipientPhone1: '010-8642-7531',
-            productName: 'Product F',
-            invoiceNo: 'INV12350',
-            request: 'Deliver to office',
-            deliveryFeeType: 'COD',
-            supplyPrice: '25000',
-            salePrice: '27000',
-            paymentAmount: '27000',
-            buyerPhone2: '010-1357-2468',
-            recipientPhone2: '010-7531-8642',
-            productNo: 'PRD1006',
-            orderNo: 'ORD2006',
-            postalCode: '44444',
-            address: '987 Willow St, City F'
-        },
-        {
-            company: 'Company G',
-            sendDate: '2024-09-07',
-            buyerName: 'Mason Robinson',
-            recipientName: 'Sophia Davis',
-            buyerPhone1: '010-4321-8765',
-            recipientPhone1: '010-8765-4321',
-            productName: 'Product G',
-            invoiceNo: 'INV12351',
-            request: 'Fragile item',
-            deliveryFeeType: 'Prepaid',
-            supplyPrice: '40000',
-            salePrice: '42000',
-            paymentAmount: '42000',
-            buyerPhone2: '010-8765-4321',
-            recipientPhone2: '010-4321-8765',
-            productNo: 'PRD1007',
-            orderNo: 'ORD2007',
-            postalCode: '55555',
-            address: '123 Cherry St, City G'
-        },
-        {
-            company: 'Company H',
-            sendDate: '2024-09-08',
-            buyerName: 'Michael Clark',
-            recipientName: 'Ava Lewis',
-            buyerPhone1: '010-5555-7777',
-            recipientPhone1: '010-8888-6666',
-            productName: 'Product H',
-            invoiceNo: 'INV12352',
-            request: 'Next day delivery',
-            deliveryFeeType: 'COD',
-            supplyPrice: '35000',
-            salePrice: '37000',
-            paymentAmount: '37000',
-            buyerPhone2: '010-7777-5555',
-            recipientPhone2: '010-6666-8888',
-            productNo: 'PRD1008',
-            orderNo: 'ORD2008',
-            postalCode: '66666',
-            address: '321 Maple St, City H'
-        },
-        // Additional rows for testing purposes...
-        {
-            company: 'Company I',
-            sendDate: '2024-09-09',
-            buyerName: 'Isabella Hall',
-            recipientName: 'James Allen',
-            buyerPhone1: '010-1357-9753',
-            recipientPhone1: '010-5317-3579',
-            productName: 'Product I',
-            invoiceNo: 'INV12353',
-            request: 'No signature required',
-            deliveryFeeType: 'Prepaid',
-            supplyPrice: '45000',
-            salePrice: '47000',
-            paymentAmount: '47000',
-            buyerPhone2: '010-9753-1357',
-            recipientPhone2: '010-3579-5317',
-            productNo: 'PRD1009',
-            orderNo: 'ORD2009',
-            postalCode: '77777',
-            address: '654 Elm St, City I'
-        },
-        {
-            company: 'Company J',
-            sendDate: '2024-09-10',
-            buyerName: 'Amelia Carter',
-            recipientName: 'Ethan Collins',
-            buyerPhone1: '010-8642-4684',
-            recipientPhone1: '010-4864-2468',
-            productName: 'Product J',
-            invoiceNo: 'INV12354',
-            request: 'Deliver in the evening',
-            deliveryFeeType: 'COD',
-            supplyPrice: '50000',
-            salePrice: '52000',
-            paymentAmount: '52000',
-            buyerPhone2: '010-2468-8642',
-            recipientPhone2: '010-8642-4864',
-            productNo: 'PRD1010',
-            orderNo: 'ORD2010',
-            postalCode: '88888',
-            address: '987 Spruce St, City J'
-        },
-        // Repeat similarly for rows up to 20+ entries...
-    ];
+    const [listArray, setListArray] = useState([]);
+    const [counselSection, setCounselSection] = useState([]);
+    const [counselResult, setCounselResult] = useState([]);
+    const [staffNames, setStaffNames] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const consultations = [
-        {
-            consultationType: 'TypeA',
-            result: '성공',
-            consultationTime: '2024-09-20 10:00',
-            completionTime: '2024-09-20 10:30',
-            content: '내용 A',
-            consultant: '상담원 A',
-        },
-        {
-            consultationType: 'TypeB',
-            result: '실패',
-            consultationTime: '2024-09-21 11:00',
-            completionTime: '2024-09-21 11:30',
-            content: '내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 \
-            B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B',
-            consultant: '상담원 B',
-        },
-        {
-            consultationType: 'TypeB',
-            result: '진행중',
-            consultationTime: '2024-09-21 11:00',
-            completionTime: '2024-09-21 11:30',
-            content: '내용 B',
-            consultant: '상담원 B',
-        },
-        {
-            consultationType: 'TypeB',
-            result: '보류',
-            consultationTime: '2024-09-21 11:00',
-            completionTime: '2024-09-21 11:30',
-            content: '내용 B',
-            consultant: '상담원 B',
-        },
-        {
-            consultationType: 'TypeB',
-            result: '보류',
-            consultationTime: '2024-09-21 11:00',
-            completionTime: '2024-09-21 11:30',
-            content: '내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 \
-            B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 \
-            B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B내용 B',
-            consultant: '상담원 B',
-        },
-    ];
+    // page2 show search result
+    const [tableData, setTableData] = useState([]);
+    const [selectedRow, setSelectedRow] = useState(null); // saves the user selection on page2 for page3
+    const [deliveryVisible, setDeliveryVisible] = useState(false); // used for delivery popup visibility
+    const [deliveryUrl, setDeliveryUrl] = useState("");
 
+    // page4 show search result for consultations (상담내역)
+    const [consultations, setConsultations] = useState([]);
+    const [newConsultations, setNewConsultations] = useState([]); // when user sends a new consultation
+    const [selectedRow_Consult, setSelectedRow_Consult] = useState(null); // when user selects the consultation
+
+    const [visibleASTable, setVisibleASTable] = useState(false); //used for popup visibility
+    const [selectedCounselerASTable, setSelectedCounselerASTable] = useState(""); //store when user picks the counseler/consultant
+    const [consultationsAS, setConsultationsAS] = useState([]); // list of AS consultations
+    const [consultationsASTable, setConsultationsASTable] = useState([]); // list of AS consultations shown in table
+    const [selectedRowASTable, setSelectedRowASTable] = useState(null);
+
+    // file upload - 첨부파일
+    const [modalVisible, setModalVisible] = useState(false); //used for popup visibility
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [error, setError] = useState(''); // print error msg
+
+    //same fields as tableData; kept all fields just for debugging
     const [productDetails, setProductDetails] = useState({
-        importType: '',
-        category: '',
-        productCode: '',
-        factory: '',
-        newProductName: '',
-        newNickname: '',
-        newComment: '',
-        coupang: '',
-        validation: '',
-        description: '',
-        deliveryFee: '',
-        containerDeliveryFee: '',
-        containerFee: '',
-        rocket: false,
-        companyName: '',
-        productName: '',
-        consultationType1: '',
-        consultationType2: '',
+        company: '', //order_company
+        productName: '', //상품명 goods_name
+        counselSection: '',
+        counselResult: '',
         startDate: '',
         endDate: '',
-        buyerName: '',
-        recipientName: '',
-        buyerPhone: '',
-        recipientPhone: ''
+        buyerName: '', //purchaser_name
+        buyerPhoneLast4: '',
+        recipientName: '', //name
+        recipientPhoneLast4: '',
+        address: '', //addres
+
+
+        buyerPhone1: '', //purchaser_tel1
+        buyerPhone2: '', //purchaser_tel2
+        recipientPhone1: '',//tel1
+        recipientPhone2: '', //tel2
+        postalCode: '', //zip_code
+        productNo: '', //goods_serial
+        orderNo: '', //order_serial
+        deliveryPaymentType: '', //g_external_pay_method[$order[pay_method]]; 배송비 구분
+        invoiceNo: '', // invoice_number
+        deliveryFee: '',//delivery_cost
+        supplyPrice: '', //supply_price
+        salePrice: '', //selling_price
+        paymentAmount: '', //settlement_price
+        request: '', //comments
     });
 
+    // get the lists when open page
     useEffect(() => {
-        fetchProductList();
+        fetchSelectList();
     }, []);
 
-    const fetchProductList = async () => {
+    // when user selects a row in page2, get all consultatoins(상담내역) for page4
+    useEffect(() => {
+        if (selectedRow) {
+            // console.log("customerService selectedRow: ", selectedRow);
+            const fetchConsultations = async () => {
+                const response = await axios.post('http://localhost:8080/customer-support/search-consultations', selectedRow, {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                console.log("cs listArray", listArray)
+
+                const consultations = transformData_counsel(response);
+                // console.log("customersupport consultations", consultations)
+                setConsultations(consultations);
+            };
+
+            fetchConsultations();
+        }
+    }, [selectedRow]); // Dependency on selectedRow
+
+
+    // helper functions ///////////////////////////////////////////////////////////////////////////////////
+    // get all options for SELECT lists
+    const fetchSelectList = async () => {
         try {
-            const response = await axios.get('http://localhost:8080/get-products-list');
-            // const parsed = response.data.map(item => `${item.id}: ${item.name}`);
-            const parsed = response.data.map(item => ({
-                value: `${item.cate_id}: ${item.good_id}, ${item.good_name}`,
+            const response = await axios.get('http://localhost:8080/get-select-list');
+            // console.log("customerSupport", typeof response, response)
+            const parsedCompanies = response.data.order_company.map(item => ({
+                value: item,
+                label: item === "" ? "미선택" : item
+            }))
+            setCompanies(parsedCompanies);
+
+            const parsedCounselSection = response.data.counsel_section.map((item, index) => ({
+                value: item === "" ? "" : String(index),
+                label: item === "" ? "미선택" : item
+            }))
+            setCounselSection(parsedCounselSection);
+
+            const parsedCounselResult = response.data.counsel_result.map((item, index) => ({
+                value: item === "" ? "" : String(index),
+                label: item === "" ? "미선택" : item
+            }))
+            setCounselResult(parsedCounselResult);
+
+            const parsedStaffNames = response.data.staff_name.map(item => ({
+                value: item === "모두" ? "" : item,
+                label: item
+            }))
+            setStaffNames(parsedStaffNames);
+
+            const parsedProducts = response.data.product_list.map(item => ({
+                value: `${item.good_name}`,
                 label: `${item.cate_id}: ${item.good_id}, ${item.good_name}`,
             }));
-            setProducts(parsed);
-            // console.log("parsed list", parsed);
+            const allProducts = [
+                { value: "", label: "미선택" },
+                ...parsedProducts
+            ];
+            setProducts(allProducts);
+
+            setListArray(response.data)
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
     };
 
-    const handleChange = (e) => {
-        setProductDetails({
-            ...productDetails,
-            [e.target.name]: e.target.value,
+    // change counsel data fields from DB to web
+    const transformData_counsel = (response) => {
+        const counselResult_m = ["상태 확인", "완료"];
+        console.log(response.data)
+        return response.data.map(item => ({
+            id: item.uid,  // Corresponding field from DB
+            startDate: item.reg_date.split('T')[0],  // Format date
+            endDate: item.end_date.split('T')[0],  // Format date
+            counselSection: item.table === "c" ? listArray.counsel_section[Number(item.counsel_section)] : counselResult_m[Number(item.proceed)],  // Assuming this corresponds to category
+            inputer: item.table === "c" ? item.counseler : item.manager, // m.manager or c.counseler
+            counselResult: listArray.counsel_result[Number(item.counsel_result)],
+            content: item.counsel_content,
+        }));
+    };
+
+    // change external buyer data fields from DB to web
+    const transformData_external = (response) => response.data.map(item => ({
+        company: item.order_company || '',
+        group_uid: item.group_uid,
+        uid: item.uid,
+        productName: item.goods_name || '',
+        counselSection: item.counsel_section || '',
+        counselResult: item.counsel_result || '',
+        startDate: item.reg_date.split('T')[0] || '',
+        buyerName: item.purchaser_name || '',
+        buyerPhoneLast4: item.purchaser_tel1?.slice(-4) || '',
+        recipientName: item.name || '',
+        recipientPhoneLast4: item.tel1?.slice(-4) || '',
+        buyerPhone1: item.purchaser_tel1 || '',
+        buyerPhone2: item.purchaser_tel2 || '',
+        recipientPhone1: item.tel1 || '',
+        recipientPhone2: item.tel2 || '',
+        postalCode: item.zip_code || '',
+        address: item.address || '',
+        productNo: item.goods_serial || '', //상품번호
+        orderNo: item.order_serial || '', //주문번호
+        deliveryPaymentType: listArray.external_pay_method[Number(item.pay_method)] || '',
+        invoiceNo: item.invoice_number || '', //송장번호
+        deliveryFee: item.delivery_cost || '',
+        supplyPrice: item.supply_price || '', //공급금액
+        salePrice: item.selling_price || '',  //판매금액
+        paymentAmount: item.settlement_price || '', //결제금액
+        request: item.comments || '',
+        group_uid: item.group_uid || '',
+    }));
+
+    // getting url from invoiceNo for delivery status
+    function getDeliveryUrl(invoiceNo, regDate) {
+        let delCom = "no";
+        invoiceNo = invoiceNo.replace(/-/g, ""); // Remove dashes
+
+        if (!isNaN(invoiceNo)) {
+            const invoiceLen = invoiceNo.length;
+
+            if (invoiceLen === 9 || invoiceLen === 10) {
+                const a = parseInt(invoiceNo.slice(0, invoiceLen - 1), 10);
+                const b = parseInt(invoiceNo[invoiceLen - 1], 10);
+
+                if ((a % 7) === b) {
+                    delCom = "ok"; // 한진
+                }
+
+                const pre = invoiceNo.substring(0, 2);
+                const regDateTimestamp = new Date(regDate).getTime();
+                const cutOffDate = new Date("2008-08-04").getTime();
+
+                if ((pre === "60" && regDateTimestamp > cutOffDate) || pre === "67" || pre === "68") {
+                    // Do nothing; logic for 'aju' not included here
+                }
+            } else if (invoiceLen === 11) {
+                delCom = "CI";
+            }
+
+            const newNum = invoiceNo;
+
+            // 송장번호 12자리 / 시작번호 5
+            if (newNum.length === 12 && newNum.startsWith("5")) {
+                delCom = "CJ";
+            }
+
+            // 송장번호 12자리 / 시작번호 4
+            if (newNum.length === 12 && newNum.startsWith("4")) {
+                delCom = "HJ";
+            }
+
+            if (invoiceLen === 10) {
+                delCom = "KGB";
+            }
+
+            if (invoiceLen === 13) {
+                delCom = "KD";
+            }
+
+            // Logic for different delivery companies based on prefixes
+            let deliveryUrl = "";
+
+            if (invoiceNo.startsWith("8") && invoiceLen !== 11) { // 하나로 택배
+                if (!invoiceNo.includes("-")) {
+                    invoiceNo = `${invoiceNo.substring(0, 3)}-${invoiceNo.substring(3, 7)}-${invoiceNo.substring(7, 10)}`;
+                }
+                deliveryUrl = `http://www.hanarologis.com/branch/chase/listbody.html?a_gb=center&a_cd=4&a_item=0&fr_slipno=${invoiceNo}`;
+            } else if (invoiceNo.startsWith("22")) { // SEDEX
+                deliveryUrl = `http://ptop.sedex.co.kr:8080/jsp/tr/detailSheet.jsp?iSheetNo=${invoiceNo}`;
+            } else if (delCom === "HJ") { // 한진택배
+                deliveryUrl = `https://www.hanjin.co.kr/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&wblnum=${invoiceNo}&schLang=KR&wblnumText=`;
+            } else if (delCom === "aju") { // 아주 택배
+                deliveryUrl = `javascript:submit_trade('${invoiceNo}')`; // Assuming a JS function call
+                console.log("아주 택배는 패턴이 없습니다..")
+                return null
+            } else if (delCom === "dongbu") {
+                deliveryUrl = `http://www.kglogis.co.kr/delivery/delivery_result.jsp?item_no=${invoiceNo}`;
+            } else if (delCom === "CJ") {
+                deliveryUrl = `https://www.doortodoor.co.kr/parcel/doortodoor.do?fsp_action=PARC_ACT_002&fsp_cmd=retrieveInvNoACT&invc_no=${invoiceNo}`;
+            } else if (delCom === "KGB") {
+                deliveryUrl = `http://www.kgbls.co.kr/sub5/trace.asp?f_slipno=${invoiceNo}`;
+            } else if (delCom === "yellow") {
+                deliveryUrl = `http://www.yellowcap.co.kr/custom/inquiry_result.asp?INVOICE_NO=${invoiceNo}`;
+            } else if (delCom === "KD") {
+                deliveryUrl = `https://kdexp.com/service/delivery/etc/delivery.do?barcode=${invoiceNo}`;
+            } else if (delCom === "CI") {
+                deliveryUrl = `http://www.cyber1001.co.kr/kor/taekbae/HTrace.jsp?transNo=${invoiceNo}`;
+            } else {
+                deliveryUrl = `http://kdexp.com/delivery.kd?barcode=${invoiceNo}`;
+            }
+
+            return deliveryUrl; // Return the URL for tracking
+        } else {
+            return null; // Invalid invoice number
+        }
+    }
+
+    // Page 1 : AS 현황 조회: ASTable //////////////////////////////////////////////////////////////////////////////////////////
+
+    const handleCounselerFilterChange = (selectedOption, { name }) => {
+        setSelectedCounselerASTable({
+            [name]: selectedOption,
         });
     };
+
+    //when user selects the counseler it filters the consultationsAS
+    useEffect(() => {
+        if (selectedCounselerASTable) {
+            // console.log("customerService selectedCounselerASTable: ", selectedCounselerASTable);
+            const filteredConsultations = consultationsAS.filter(
+                (row) => (selectedCounselerASTable.ASCounseler.value === '' || row.counseler === selectedCounselerASTable.ASCounseler.value)
+            );
+
+            setConsultationsASTable(filteredConsultations);
+        }
+    }, [selectedCounselerASTable]);
+
+    // when the user hits "AS 현황 조회", shows pop up
+    const handleASView = async (e) => {
+        e.preventDefault();
+        setVisibleASTable(!visibleASTable);
+        try {
+            //get all AS data; when user changes the staffNames list then fliter
+            const response = await axios.get('http://localhost:8080/customer-support/search-ASTable');
+            const consultations = response.data.map(item => ({
+                id: item.uid,
+                group_uid: item.group_uid,
+                external_uid: item.external_uid,
+                startDate: item.reg_date.split('T')[0],  // Format date
+                recipient: item.name,
+                productName: item.good_name,
+                counselResult: item.counsel_result,
+                counseler: item.counseler,
+                content: item.counsel_content,
+                manager: item.manager
+            }));
+
+            // Update the state with the transformed data
+            setConsultationsASTable(consultations)
+            return setConsultationsAS(consultations);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
+
+    // when user selects the row, shows on page 2
+    const handleCheckboxChangeASTable = async (row) => {
+        console.log("handleCheckboxChangeASTable", row)
+        setSelectedRowASTable(row);
+        const foundSelected = tableData.filter((row_table) => row_table.group_uid === row.group_uid)[0]
+        if (foundSelected) {
+            setSelectedRow(foundSelected);
+        } else {
+            console.log(row);
+            const response = await axios.post('http://localhost:8080/customer-support/search-ASTable/consultations', row, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const transformedData = transformData_external(response);
+
+            // show it to Page2; user will select there
+            setTableData(transformedData);
+            setSelectedRow(null); // reset the selectedrow to reset the page3 page
+        }
+        return;
+    };
+
+
+
+    // Page1: 첨부파일: file upload //////////////////////////////////////////////////////////////////////////////////
+    const handleUploadView = () => {
+        setModalVisible(true);
+        setError(''); // Reset error message
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Check if the file is a CSV
+            if (file.type !== 'text/csv') {
+                setError('Please upload a valid CSV file.');
+                setSelectedFile(null); // Reset file input
+            } else {
+                setError('');
+                setSelectedFile(file);
+            }
+        }
+    };
+
+    const handleUpload = () => {
+        if (selectedFile) {
+            // Implement the upload logic here
+            console.log('Uploading file:', selectedFile);
+            // Close modal after upload or after you perform the upload operation
+            setModalVisible(false);
+        }
+    };
+
+    // Page1, 2: 검색, 검색결과 ///////////////////////////////////////////////////////////////////////////////////
+    // used for text inputs
+    const handleChange = (e) => {
+        setProductDetails(prevDetails => ({
+            ...prevDetails,
+            [e.target.name]: e.target.value || '',
+        }));
+    };
+    // used for Select inputs
     const handleSelectChange = (selectedOption, { name }) => {
         setProductDetails({
             ...productDetails,
             [name]: selectedOption,
         });
     };
-    const handleCheckboxChange = (row) => {
-        setNewConsultations({
-            ...newConsultations,
+    // when user selects a row, affects page2, 3
+    const handleCheckboxChange = async (row) => {
+        setNewConsultations(prevState => ({
+            ...prevState,
             consultationTime: new Date().toLocaleString(),
-        });
-        setSelectedRow(selectedRow === row ? null : row);
+            counseler: sessionStorage.getItem('name')
+        }));
+        // console.log("handleCheckboxChange, row", row)
+        setSelectedRow(selectedRow === row ? null : row)
     };
-    const handleView = (e) => {
+
+    // when user hits 조회
+    const handleView = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            // const response = await axios.post('http://localhost:8080/api/search', productDetails);
-            // Update the table data with the response
-            // setTableData(response.data);  // assuming `response.data` is the array of results
-            console.log("set table")
+            // console.log("customerSupport", productDetails)
+            const response = await axios.post('http://localhost:8080/customer-support/search', productDetails, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const transformedData = transformData_external(response)
+
+            // Update the state with the transformed data
+            setTableData(transformedData);
+            setSelectedRow(null);
         } catch (error) {
             console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false); // Hide loading spinner
         }
 
     };
 
+    // Page2: 배송 조회: delivery popup /////////////////////////////////////////////////////////////////////////////
+    const handleInvoiceClick = (invoiceNo, regDate) => {
+        const url = getDeliveryUrl(invoiceNo, regDate);
+        setDeliveryUrl(url);
+        setDeliveryVisible(true);
+    };
 
+    const closeModal = () => {
+        setDeliveryVisible(false);
+        setDeliveryUrl(""); // Clear the URL when closing the modal
+    };
+
+    // Page4: 고객 상담 내역: Consultation Table ///////////////////////////////////////////////////////////////////////
     const handleChange_Consult = (e) => {
-        setProductDetails({
+        setNewConsultations({
             ...newConsultations,
             [e.target.name]: e.target.value,
         });
     };
     const handleSelectChange_Consult = (selectedOption, { name }) => {
-        setProductDetails({
+        setNewConsultations({
             ...newConsultations,
             [name]: selectedOption,
         });
     };
     const handleCheckboxChange_Consult = (row) => {
-        setSelectedRow_Consult(selectedRow_Consult === row ? null : row);
+        setSelectedRow_Consult(row);
     };
 
-    const handleConsulation = () => {
-        setNewConsultations({
-            ...newConsultations,
-            completionTime: new Date().toLocaleString(),
-        });
+    // when user submits new consultation 
+    const handleConsulation = async () => {
+        newConsultations["completionTime"] = new Date().toLocaleString();
+        newConsultations["group_uid"] = selectedRow.group_uid;
+        newConsultations["external_uid"] = selectedRow.uid;
+        try {
+            const response = await axios.post('http://localhost:8080/customer-support/submit-consultations', newConsultations, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+            //update consultations in page 4
+            const response_search = await axios.post('http://localhost:8080/customer-support/search-consultations', selectedRow, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const consultations_new = transformData_counsel(response_search);
+            setConsultations(consultations_new);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
     };
 
+    // change color coding for page 4 based on counsel_result
+    // if want to change color or add new go to frontend/src/scss/_custom.scss
     const getRowClassConsultation = (result) => {
         switch (result) {
             case '성공':
                 return 'success-row';
-            case '실패':
+            case '상태 확인':
                 return 'failure-row';
-            case '진행중':
+            case '반품':
                 return 'in-progress-row';
             default:
                 return 'other';
         }
     };
 
-    const handleASView = (e) => {
-        e.preventDefault();
-    };
+
 
     return (
         <CRow>
             <CCol xs={12}>
+                {/* ///////////////////////// page1: 주문 검색 start //////////////////////////////////////////////////////////////////////////// */}
+
                 <CCard className="mb-4">
                     <CCardHeader>
                         <strong>주문 검색</strong>
                     </CCardHeader>
                     <CCardBody>  {/* Opening tag for CCardBody */}
+                        {loading && (
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                                <CSpinner color="primary" /> <span style={{ marginLeft: '10px' }}>Loading...</span>
+                            </div>
+                        )}
                         <CForm className="row g-3">
                             {/* 업체명 */}
                             <CCol md={4}>
                                 <CFormLabel>업체명</CFormLabel>
                                 <Select
-                                    name="companyName"
-                                    options={companies.map(category => ({ value: category.id, label: category.name }))}
+                                    name="company"
+                                    options={companies}
                                     onChange={handleSelectChange}
                                     isSearchable
                                 />
@@ -451,8 +558,8 @@ const CustomerSupport = () => {
                                 <div className="d-flex align-items-center">
                                     <div style={{ flex: 3, marginRight: '0.5rem' }}>
                                         <Select
-                                            name="consultationType1"
-                                            options={consultations_type1.map(category => ({ value: category.id, label: category.name }))}
+                                            name="counselSection"
+                                            options={counselSection}
                                             onChange={handleSelectChange}
                                             placeholder="상담구분"
                                             isSearchable
@@ -460,8 +567,8 @@ const CustomerSupport = () => {
                                     </div>
                                     <div style={{ flex: 2 }}>
                                         <Select
-                                            name="consultationType2"
-                                            options={consultations_type2.map(category => ({ value: category.id, label: category.name }))}
+                                            name="counselResult"
+                                            options={counselResult}
                                             onChange={handleSelectChange}
                                             placeholder="처리결과"
                                             isSearchable
@@ -500,12 +607,106 @@ const CustomerSupport = () => {
                                 </div>
                             </CCol>
 
+                            {/* ///////////////////////// page1: AS 현황 검색 start //////////////////////////////////////////////////////////////////////////// */}
+                            <CModal visible={visibleASTable} onClose={() => setVisibleASTable(false)} size="xl">
+                                <CModalHeader onClose={() => setVisibleASTable(false)}>
+                                    <CModalTitle>AS 상담 현황</CModalTitle>
+                                </CModalHeader>
+                                <CModalBody>
+                                    {/* Select Filter */}
+                                    <CFormLabel htmlFor="inputer-select">입력자 선택</CFormLabel>
+                                    <div style={{ flex: 2.5 }}>
+                                        <Select
+                                            name="ASCounseler"
+                                            options={staffNames}
+                                            onChange={handleCounselerFilterChange}
+                                            placeholder="모두"
+                                            isSearchable
+                                            styles={{
+                                                control: (base) => ({
+                                                    ...base,
+                                                    width: '200px' // Set your custom width here
+                                                })
+                                            }}
+                                        />
+                                    </div>
+                                    {/* Consultation Table; ASTable */}
+                                    <div style={{ height: '300px', overflowY: 'scroll' }}>
+                                        <CTable hover striped>
+                                            <CTableHead>
+                                                <CTableRow>
+                                                    <CTableHeaderCell></CTableHeaderCell>
+                                                    <CTableHeaderCell>날짜</CTableHeaderCell>
+                                                    <CTableHeaderCell>수취인</CTableHeaderCell>
+                                                    <CTableHeaderCell>제품명</CTableHeaderCell>
+                                                    <CTableHeaderCell>분류</CTableHeaderCell>
+                                                    <CTableHeaderCell>상담자</CTableHeaderCell>
+                                                    <CTableHeaderCell>내용</CTableHeaderCell>
+                                                    <CTableHeaderCell>입력자</CTableHeaderCell>
+                                                </CTableRow>
+                                            </CTableHead>
+                                            <CTableBody>
+                                                {consultationsASTable.map((row) => (
+                                                    <CTableRow key={row.id}>
+                                                        <CTableDataCell>
+                                                            <CFormCheck
+                                                                type="radio"
+                                                                onChange={() => handleCheckboxChangeASTable(row)}
+                                                                checked={selectedRowASTable === row}
+                                                            />
+                                                        </CTableDataCell>
+                                                        <CTableDataCell>{row.startDate}</CTableDataCell>
+                                                        <CTableDataCell>{row.recipient}</CTableDataCell>
+                                                        <CTableDataCell>{row.productName}</CTableDataCell>
+                                                        <CTableDataCell>{row.counselResult}</CTableDataCell>
+                                                        <CTableDataCell>{row.counseler}</CTableDataCell>
+                                                        <CTableDataCell>{row.content}</CTableDataCell>
+                                                        <CTableDataCell>{row.manager}</CTableDataCell>
+                                                    </CTableRow>
+                                                ))}
+                                            </CTableBody>
+                                        </CTable>
+                                    </div>
+                                    {/* ///////////////////////// page1: AS 현황 검색 end //////////////////////////////////////////////////////////////////////////// */}
+
+
+                                </CModalBody>
+                                <CModalFooter>
+                                    <CButton color="secondary" onClick={() => setVisibleASTable(false)}>Close</CButton>
+                                </CModalFooter>
+                            </CModal>
+
                             <CCol md={2}>
                                 <CFormLabel>첨부파일</CFormLabel>
                                 <div className="d-flex align-items-center">
-                                    <CButton color="dark" type="button" onClick={handleASView}>파일 선택</CButton>
+                                    <CButton color="dark" type="button" onClick={handleUploadView}>파일 선택</CButton>
                                 </div>
                             </CCol>
+                            {/* ///////////////////////// page1: 첨부파일; file upload start //////////////////////////////////////////////////////////////////////////// */}
+
+                            <CModal visible={modalVisible} onClose={() => setModalVisible(false)}>
+                                <CModalHeader>
+                                    <CModalTitle>Upload CSV File</CModalTitle>
+                                </CModalHeader>
+                                <CModalBody>
+                                    <CFormInput
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleFileChange}
+                                    />
+                                    {error && <div className="text-danger">{error}</div>}
+                                </CModalBody>
+                                <CModalFooter>
+                                    <CButton color="secondary" onClick={() => setModalVisible(false)}>
+                                        Close
+                                    </CButton>
+                                    <CButton color="primary" onClick={handleUpload} disabled={!selectedFile}>
+                                        Upload
+                                    </CButton>
+                                </CModalFooter>
+                            </CModal>
+                            {/* ///////////////////////// page1: 첨부파일; file upload end //////////////////////////////////////////////////////////////////////////// */}
+
 
                             {/* 구매인명 */}
                             <CCol md={8}>
@@ -516,7 +717,7 @@ const CustomerSupport = () => {
                                     </div>
                                     <div style={{ flex: 2, marginRight: '0.5rem' }}>
                                         <CFormLabel>구매인전화번호</CFormLabel>
-                                        <CFormInput name="buyerPhone" placeholder="전화번호 4자리" onChange={handleChange} />
+                                        <CFormInput name="buyerPhoneLast4" placeholder="전화번호 4자리" onChange={handleChange} />
                                     </div>
 
                                     <div style={{ flex: 3, marginRight: '0.5rem' }}>
@@ -525,7 +726,7 @@ const CustomerSupport = () => {
                                     </div>
                                     <div style={{ flex: 2, marginRight: '0.5rem' }}>
                                         <CFormLabel>수취인전화번호</CFormLabel>
-                                        <CFormInput name="recipientPhone" placeholder="전화번호 4자리" onChange={handleChange} />
+                                        <CFormInput name="recipientPhoneLast4" placeholder="전화번호 4자리" onChange={handleChange} />
                                     </div>
                                 </div>
                             </CCol>
@@ -542,8 +743,11 @@ const CustomerSupport = () => {
                                 <CButton color="primary" type="submit" onClick={handleView}>조회 </CButton>
                             </CCol>
                         </CForm>
+                        {/* ///////////////////////// page1: 주문 검색 end //////////////////////////////////////////////////////////////////////////// */}
 
-                        {/* 결과 테이블 */}
+
+                        {/* ///////////////////////// page2: 결과 화면; tableData start //////////////////////////////////////////////////////////////////////////// */}
+
                         <div style={{ height: '300px', overflowY: 'scroll' }}>
                             <table className="table table-striped">
                                 <thead>
@@ -561,9 +765,9 @@ const CustomerSupport = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {tableData.map((row) => (
+                                    {tableData.map((row, index) => (
                                         <tr
-                                            key={row.invoiceNo}
+                                            key={index}
                                             className={selectedRow === row ? "selected-row" : ""}
                                         >
                                             <td>
@@ -574,19 +778,48 @@ const CustomerSupport = () => {
                                                 />
                                             </td>
                                             <td>{row.company}</td>
-                                            <td>{row.sendDate}</td>
+                                            <td>{row.startDate}</td>
                                             <td>{row.buyerName}</td>
                                             <td>{row.recipientName}</td>
                                             <td>{row.buyerPhone1}</td>
                                             <td>{row.recipientPhone1}</td>
                                             <td>{row.productName}</td>
-                                            <td>{row.invoiceNo}</td>
+                                            <td>
+                                                <span
+                                                    style={{ color: 'blue', cursor: 'pointer' }}
+                                                    onClick={() => handleInvoiceClick(row.invoiceNo, row.startDate)}
+                                                >
+                                                    {row.invoiceNo}
+                                                </span>
+                                            </td>
                                             <td>{row.request}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                            {/* ///////////////////////// page2: delivery popup start //////////////////////////////////////////////////////////////////////////// */}
+                            <CModal visible={deliveryVisible} onClose={closeModal} size="xl">
+                                <CModalHeader closeButton>
+                                    <CModalTitle>Delivery Tracking</CModalTitle>
+                                </CModalHeader>
+                                <CModalBody>
+                                    {deliveryUrl ? (
+                                        <iframe
+                                            src={deliveryUrl}
+                                            style={{ width: '100%', height: '500px', border: 'none' }}
+                                            title="Delivery Tracking"
+                                        ></iframe>
+                                    ) : (
+                                        <p>No URL available for this invoice.</p>
+                                    )}
+                                </CModalBody>
+                                <CButton color="secondary" onClick={closeModal}>Close</CButton>
+                            </CModal>
+                            {/* ///////////////////////// page2: delivery popup end //////////////////////////////////////////////////////////////////////////// */}
+
                         </div>
+                        {/* ///////////////////////// page2: 결과 화면; tableData end //////////////////////////////////////////////////////////////////////////// */}
+                        {/* ///////////////////////// page3: 주문서 상품정보 및 요구사항; selectedRow start //////////////////////////////////////////////////////////////////////////// */}
 
                         {selectedRow && (
                             <div style={{ padding: '1rem' }}>
@@ -602,13 +835,13 @@ const CustomerSupport = () => {
                                     <div style={{ flex: 1 }}>
                                         <div className="d-flex align-items-center">
                                             <p style={{ margin: 0 }}>발송일자:</p>
-                                            <div className="info-box">{selectedRow.sendDate}</div>
+                                            <div className="info-box">{selectedRow.startDate}</div>
                                         </div>
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div className="d-flex align-items-center">
                                             <p style={{ margin: 0 }}>배송비구분:</p>
-                                            <div className="info-box">{selectedRow.deliveryFeeType}</div>
+                                            <div className="info-box">{selectedRow.deliveryPaymentType}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -623,7 +856,7 @@ const CustomerSupport = () => {
                                     <div style={{ flex: 1 }}>
                                         <div className="d-flex align-items-center">
                                             <p style={{ margin: 0 }}>배송비:</p>
-                                            <div className="info-box">{selectedRow.deliveryFeeType}</div>
+                                            <div className="info-box">{selectedRow.deliveryFee}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -671,22 +904,24 @@ const CustomerSupport = () => {
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div className="d-flex align-items-center">
-                                                    <p style={{ margin: 0 }}>송장번호:</p>
-                                                    <div className="info-box">{selectedRow.invoiceNo}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="d-flex justify-content-between mb-3">
-                                            <div style={{ flex: 1 }}>
-                                                <div className="d-flex align-items-center">
                                                     <p style={{ margin: 0 }}>전화번호1:</p>
                                                     <div className="info-box">{selectedRow.buyerPhone1}</div>
                                                 </div>
                                             </div>
+
+                                        </div>
+                                        <div className="d-flex justify-content-between mb-3">
+                                            <div style={{ flex: 1 }}>
+                                                <div className="d-flex align-items-center">
+                                                    <p style={{ margin: 0 }}>송장번호:</p>
+                                                    <div className="info-box">{selectedRow.invoiceNo}</div>
+                                                </div>
+                                            </div>
+
                                             <div style={{ flex: 1 }}>
                                                 <div className="d-flex align-items-center">
                                                     <p style={{ margin: 0 }}>전화번호2:</p>
-                                                    <div className="info-box">{selectedRow.buyerPhone1}</div>
+                                                    <div className="info-box">{selectedRow.buyerPhone2}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -716,17 +951,9 @@ const CustomerSupport = () => {
                                                     <div className="info-box">{selectedRow.recipientName}</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="d-flex justify-content-between mb-3">
                                             <div style={{ flex: 1 }}>
                                                 <div className="d-flex align-items-center">
                                                     <p style={{ margin: 0 }}>전화번호1:</p>
-                                                    <div className="info-box">{selectedRow.recipientPhone1}</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div className="d-flex align-items-center">
-                                                    <p style={{ margin: 0 }}>전화번호2:</p>
                                                     <div className="info-box">{selectedRow.recipientPhone1}</div>
                                                 </div>
                                             </div>
@@ -740,6 +967,14 @@ const CustomerSupport = () => {
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div className="d-flex align-items-center">
+                                                    <p style={{ margin: 0 }}>전화번호2:</p>
+                                                    <div className="info-box">{selectedRow.recipientPhone2}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="d-flex justify-content-between mb-3">
+                                            <div style={{ flex: 2 }}>
+                                                <div className="d-flex align-items-center">
                                                     <p style={{ margin: 0 }}>주소:</p>
                                                     <div className="info-box">{selectedRow.address}</div>
                                                 </div>
@@ -747,35 +982,45 @@ const CustomerSupport = () => {
                                         </div>
                                     </div>
                                 </div>
+                                {/* ///////////////////////// page3: 주문서 상품정보 및 요구사항; selectedRow end //////////////////////////////////////////////////////////////////////////// */}
 
+                                {/* ///////////////////////// page4: 고객 상담 내역 등록하기; new consultation start //////////////////////////////////////////////////////////////////////////// */}
                                 <h4 className="custom-header-consultation">고객 상담 내역 등록하기</h4>
                                 <CForm>
                                     <CRow className="mb-3">
-                                        <CCol md={2}>
+                                        <CCol style={{ width: '12.5%' }}>
                                             <CFormLabel>상담구분</CFormLabel>
                                             <Select
-                                                options={consultations_type1.map(type => ({ value: type, label: type }))}
+                                                name="counselSection"
+                                                options={counselSection}
                                                 onChange={handleSelectChange_Consult}
                                                 isSearchable
                                             />
                                         </CCol>
-                                        <CCol md={2}>
+                                        <CCol style={{ width: '12.5%' }}>
                                             <CFormLabel>처리결과</CFormLabel>
                                             <Select
-                                                options={consultations_type2.map(result => ({ value: result, label: result }))}
+                                                name="counselResult"
+                                                options={counselResult}
                                                 onChange={handleSelectChange_Consult}
                                                 isSearchable
                                             />
                                         </CCol>
-                                        <CCol md={4}>
+                                        <CCol md={3}>
                                             <CFormLabel>상담시간</CFormLabel>
-                                            <CFormInput type="text" value={newConsultations.consultationTime} readOnly />
+                                            <CFormInput type="text" value={newConsultations.consultationTime || ''} readOnly />
                                         </CCol>
-                                        <CCol md={4}>
+                                        <CCol md={3}>
                                             <CFormLabel>완료시간</CFormLabel>
-                                            <CFormInput type="text" value={newConsultations.completionTime} placeholder='등록시 자동으로 기재됩니다' readOnly />
+                                            <CFormInput type="text" value={newConsultations.completionTime || ''} placeholder='등록시 자동으로 기재됩니다' readOnly />
+                                        </CCol>
+                                        <CCol style={{ width: '20.83%' }}>
+                                            <CFormLabel>상담원</CFormLabel>
+                                            <CFormInput type="text" value={newConsultations.counseler || ''} readOnly />
                                         </CCol>
                                     </CRow>
+                                    {/* ///////////////////////// page3: 고객 상담 내역 등록하기; new consultation start //////////////////////////////////////////////////////////////////////////// */}
+
                                     <CRow className="mb-3">
                                         <CCol md={12}>
                                             <CFormLabel>상담내용</CFormLabel>
@@ -801,7 +1046,8 @@ const CustomerSupport = () => {
                                         </CCol>
                                     </CRow>
                                 </CForm>
-
+                                {/* ///////////////////////// page4: 고객 상담 내역 등록하기; new consultation end //////////////////////////////////////////////////////////////////////////// */}
+                                {/* ///////////////////////// page4: 기존 상담내역; prev consultation start //////////////////////////////////////////////////////////////////////////// */}
                                 <h4 className="custom-header-consultation">기존 상담내역 (상담시간 기준 오름차순)</h4>
                                 <div style={{ height: '200px', overflowY: 'scroll' }}>
                                     <table className="custom-table">
@@ -818,7 +1064,7 @@ const CustomerSupport = () => {
                                         </thead>
                                         <tbody>
                                             {consultations.map((row, index) => (
-                                                <tr key={index} className={getRowClassConsultation(row.result)}>
+                                                <tr key={index} className={getRowClassConsultation(row.counselResult)}>
                                                     <td>
                                                         <CFormCheck
                                                             type="radio"
@@ -826,17 +1072,19 @@ const CustomerSupport = () => {
                                                             checked={selectedRow_Consult === row}
                                                         />
                                                     </td>
-                                                    <td>{row.consultationType}</td>
-                                                    <td>{row.result}</td>
-                                                    <td>{row.consultationTime}</td>
-                                                    <td>{row.completionTime}</td>
+                                                    <td>{row.counselSection}</td>
+                                                    <td>{row.counselResult}</td>
+                                                    <td>{row.startDate}</td>
+                                                    <td>{row.endDate}</td>
                                                     <td>{row.content}</td>
-                                                    <td>{row.consultant}</td>
+                                                    <td>{row.inputer}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
+                                {/* ///////////////////////// page4: 기존 상담내역; prev consultation end //////////////////////////////////////////////////////////////////////////// */}
+
                                 {/* <div className="table-container">
                                     <table className="custom-table">
                                         <thead>
@@ -877,7 +1125,7 @@ const CustomerSupport = () => {
                     </CCardBody>
                 </CCard>
             </CCol>
-        </CRow>
+        </CRow >
     )
 }
 

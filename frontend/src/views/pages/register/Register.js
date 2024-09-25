@@ -60,7 +60,7 @@ const Register = () => {
         alert('아이디(Username)가 중복됐습니다');
       } else {
         console.error('Error registration:', error);
-        alert('회원가입에 실패했습니다. 서버에 접속하여 자세한 사항을 확인해주세요');
+        alert('회원가입에 실패했습니다. 관리자에게 문의하여주세요');
       }
       return;
     }

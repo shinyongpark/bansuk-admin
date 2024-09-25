@@ -42,6 +42,7 @@ const Login = () => {
       });
       sessionStorage.setItem('tokenExpiry', Date.now() + 3600 * 1000) // Token expire in 1 hour
       sessionStorage.setItem('authUser', response.data.authUser)
+      sessionStorage.setItem('name', response.data.name)
 
       // console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
       navigate('/');
