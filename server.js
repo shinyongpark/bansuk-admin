@@ -467,6 +467,76 @@ app.post('/register/userInfo', async (req, res) => {
 
 });
 
+app.get('/get-sales-data', async (req, res) => {
+  const { year, month, category } = req.query;
+  if (!year || !month || !category) {
+    return res.status(400).json({ message: 'Year, month, and category are required' });
+  }
+  try {
+    const startDate = new Date(year, month - 1, 1).getTime() / 1000;
+    const endDate = new Date(year, month, 0).getTime() / 1000;
+
+    // Fetch all products within the category
+    const products = await db.collection('product_list').find({ cate_id: category }).toArray();
+
+    // Perform aggregation to fetch sales data
+    const salesData = await db.collection('outgoing_goods').aggregate([
+      {
+        $match: {
+          cate_id: category,
+          date: { $gte: startDate.toString(), $lt: endDate.toString() }
+        }
+      },
+      {
+        $addFields: { convertedDate: { $toLong: "$date" } }
+      },
+      {
+        $group: {
+          _id: {
+            code: "$code",
+            day: { $dayOfMonth: { $toDate: { $multiply: ["$convertedDate", 1000] } } }
+          },
+          dailySales: { $sum: "$quantity" }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.code",
+          salesByDay: { $push: { day: "$_id.day", count: "$dailySales" } }
+        }
+      }
+    ]).toArray();
+
+    // Map the sales data to a dictionary for quick lookup
+    const salesMap = salesData.reduce((acc, item) => {
+      acc[item._id] = item.salesByDay.reduce((map, daySale) => {
+        map[daySale.day] = daySale.count;
+        return map;
+      }, {});
+      return acc;
+    }, {});
+
+    // Prepare final data array including products with no sales
+    const numDays = new Date(year, month, 0).getDate();
+    const finalData = products.map(product => ({
+      category: product.cate_id,
+      productName: product.good_name,
+      importType: product.stock_kind, // Assuming 'stock_kind' is import type
+      dailySales: Array.from({ length: numDays }, (_, i) => ({
+        day: i + 1,
+        count: salesMap[product.good_id] ? salesMap[product.good_id][i + 1] || 0 : 0
+      })),
+      totalSales: Object.values(salesMap[product.good_id] || {}).reduce((a, b) => a + b, 0),
+      stock: product.stock || 'N/A' // Assuming there is a 'stock' field
+    }));
+    console.log(finalData.dailySales)
+    res.json(finalData);
+  } catch (error) {
+    console.error('Failed to fetch sales data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {

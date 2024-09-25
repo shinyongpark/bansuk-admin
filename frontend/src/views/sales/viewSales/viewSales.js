@@ -1,99 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Select from 'react-select';
-import {
-  CCard,
-  CCardBody,
-  CCardHeader,
-  CCol,
-  CRow,
-  CTable,
-  CTableBody,
-  CTableDataCell,
-  CTableHead,
-  CTableHeaderCell,
-  CTableRow,
-  CNav,
-  CNavItem,
-  CNavLink,
-  CCollapse,
-  CFormSelect,
-  CFormInput,
-  CButton,
-} from '@coreui/react';
-import {
-  CChartBar,
-  CChartDoughnut,
-  CChartLine,
-  CChartPie,
-  CChartPolarArea,
-  CChartRadar,
-} from '@coreui/react-chartjs'
+import { CButton, CCard, CCardBody, CCardHeader, CCol, CFormSelect, CRow, CCollapse, CTable, CTableBody, CTableDataCell, CTableHead, CTableHeaderCell, CTableRow } from '@coreui/react';
 import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import "react-datepicker/dist/react-datepicker.css";
 
-const SalesDashboard = () => {
-  const [orders, setOrders] = useState([]);
+const SalesData = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [visibleTable, setVisibleTable] = useState(true);
-  const [visibleLineChart, setVisibleLineChart] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [visibleTable, setVisibleTable] = useState(false);
+  const [salesData, setSalesData] = useState([]);
+  const [daysInMonth, setDaysInMonth] = useState(0);
 
-  //ex
-  const categories = [
-    { id: 1, name: "전자기기" },
-    { id: 2, name: "가구" },
-    { id: 3, name: "주방용품" }
-  ];
-  const products = {
-    1: ["노트북", "스마트폰", "태블릿"], // Products for category '전자기기'
-    2: ["책상", "의자", "소파"],          // Products for category '가구'
-    3: ["냄비", "프라이팬", "접시"]      // Products for category '주방용품'
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/get-categories');
+      setCategories(response.data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
   };
-  const entryTypes = ["입고", "출고", "반품"]; // Entry types
 
-  // Fetch orders based on selected month and year
   const handleView = async () => {
     const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth() + 1; // months are zero-indexed
+    const month = selectedDate.getMonth() + 1;
+    const category = selectedCategory;
+    if (!category) {
+      alert('Please select a category');
+      return;
+    }
     try {
-      const response = await axios.get(`http://localhost:8080/sales/orders?year=${year}&month=${month}`);
-      setOrders(response.data);
+      const response = await axios.get(`http://localhost:8080/get-sales-data`, { params: { year, month, category } });
+      setSalesData(response.data || []);
+      setDaysInMonth(new Date(year, month, 0).getDate());
+      setVisibleTable(true);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Failed to fetch sales data:', error);
     }
   };
-
-  const handleChange = (e) => {
-    if (e.hasOwnProperty('target')) {
-      const { name, value } = e.target;
-      setUserInput(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    } else {
-      userInput.category = e.value;
-    }
-  };
-
-  // Calculate number of days in the selected month
-  const daysInMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
 
   return (
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
-          <CNav variant="tabs">
-            <CNavItem>
-              <CNavLink onClick={() => { setVisibleTable(true); setVisibleLineChart(false); }}>
-                Table
-              </CNavLink>
-            </CNavItem>
-            <CNavItem>
-              <CNavLink onClick={() => { setVisibleTable(false); setVisibleLineChart(true); }}>
-                Line Chart
-              </CNavLink>
-            </CNavItem>
-          </CNav>
           <CCardHeader>
             <div className="d-flex align-items-center">
               <DatePicker
@@ -103,13 +56,12 @@ const SalesDashboard = () => {
                 showMonthYearPicker
               />
               <div className="w-auto mx-2" style={{ minWidth: '200px' }}>
-                <Select
-                  options={categories}
-                  name='category'
-                  onChange={handleChange}
-                  isSearchable={true}
-                  placeholder="Select a category..."
-                />
+                <CFormSelect name="category" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                  <option value="">Select a category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>{category.id + ' ' + category.name}</option>
+                  ))}
+                </CFormSelect>
               </div>
               <CButton color="primary" type="button" onClick={handleView}>조회</CButton>
             </div>
@@ -119,54 +71,27 @@ const SalesDashboard = () => {
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
-                    <CTableHeaderCell scope="col">분류</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">입고구분</CTableHeaderCell>
-                    {/* Dynamic date columns */}
-                    {Array.from({ length: daysInMonth }, (_, i) => (
-                      <CTableHeaderCell key={i + 1} scope="col">{i + 1}</CTableHeaderCell>
-                    ))}
-                    <CTableHeaderCell scope="col">총 판매량</CTableHeaderCell>
-                    <CTableHeaderCell scope="col">반석재고</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Product Name</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Import Type</CTableHeaderCell>
+                    {Array.from({ length: daysInMonth }, (_, i) => <CTableHeaderCell key={i}>{i + 1}</CTableHeaderCell>)}
+                    <CTableHeaderCell scope="col">Total Sales</CTableHeaderCell>
+                    <CTableHeaderCell scope="col">Stock</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {orders.map(order => (
-                    <CTableRow key={order._id}>
-                      <CTableDataCell>{order.category}</CTableDataCell>
-                      <CTableDataCell>{order.goods_name}</CTableDataCell>
-                      <CTableDataCell>{order.entry_type}</CTableDataCell>
-                      {/* Dynamic date columns */}
-                      {Array.from({ length: daysInMonth }, (_, i) => (
-                        <CTableDataCell key={i + 1}>
-                          {order.daily_sales[i] || 0} {/* Adjust based on actual data */}
-                        </CTableDataCell>
+                  {salesData.map((data, index) => (
+                    <CTableRow key={index}>
+                      <CTableDataCell>{data.productName}</CTableDataCell>
+                      <CTableDataCell>{data.importType}</CTableDataCell>
+                      {data.dailySales.map((sale, idx) => (
+                        <CTableDataCell key={idx}>{sale.count}</CTableDataCell>
                       ))}
-                      {/* 총 판매량 */}
-                      <CTableDataCell>
-                        {order.daily_sales.reduce((acc, curr) => acc + (curr || 0), 0)}
-                      </CTableDataCell>
-                      {/* 반석재고 */}
-                      <CTableDataCell>{order.remaining_stock}</CTableDataCell>
+                      <CTableDataCell>{data.totalSales}</CTableDataCell>
+                      <CTableDataCell>{data.stock}</CTableDataCell>
                     </CTableRow>
                   ))}
                 </CTableBody>
               </CTable>
-            </CCardBody>
-          </CCollapse>
-          <CCollapse visible={visibleLineChart}>
-            <CCardBody>
-              <CChartLine
-                data={{
-                  labels: Array.from(new Array(30), (_, i) => i + 1), // Assuming 30 days in a month for simplicity
-                  datasets: [{
-                    label: 'Daily Sales',
-                    backgroundColor: '#f87979',
-                    data: orders.map(order => order.goods_num), // Adjust as per actual data key for quantities
-                  }],
-                }}
-                labels="days"
-              />
             </CCardBody>
           </CCollapse>
         </CCard>
@@ -175,4 +100,4 @@ const SalesDashboard = () => {
   );
 };
 
-export default SalesDashboard;
+export default SalesData;
