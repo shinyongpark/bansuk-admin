@@ -392,18 +392,13 @@ app.get('/get-sales-data', async (req, res) => {
     return res.status(400).json({ message: 'Year, month, and category are required' });
   }
   try {
-    // Convert to integers to work with Unix timestamps properly
     const startMonth = new Date(year, month - 1, 1);
     const endMonth = new Date(year, month, 0);
     const startDate = Math.floor(startMonth.getTime() / 1000);
     const endDate = Math.floor(endMonth.getTime() / 1000);
 
-    console.log('Start and End Dates:', startDate, endDate);
+    const products = await db.collection('product_list').find({ cate_id: category, good_exist: 'y' }).toArray();
 
-    // Fetch all products within the category
-    const products = await db.collection('product_list').find({ cate_id: category }).toArray();
-
-    // Perform aggregation to fetch sales data
     const salesData = await db.collection('outgoing_goods').aggregate([
       {
         $match: {
@@ -414,7 +409,7 @@ app.get('/get-sales-data', async (req, res) => {
       {
         $addFields: {
           convertedDate: {
-            $toDate: { $add: [{ $multiply: [{ $toInt: "$date" }, 1000] }, 86400000] } // Adding one day in milliseconds to correct off-by-one error
+            $toDate: { $add: [{ $multiply: [{ $toInt: "$date" }, 1000] }, 86400000] }
           }
         }
       },
@@ -422,7 +417,7 @@ app.get('/get-sales-data', async (req, res) => {
         $group: {
           _id: {
             code: "$code",
-            day: { $dayOfMonth: "$convertedDate" } // Now calculating the day from the adjusted date
+            day: { $dayOfMonth: "$convertedDate" }
           },
           dailySales: { $sum: { $toInt: "$stocks" } }
         }
@@ -432,21 +427,33 @@ app.get('/get-sales-data', async (req, res) => {
           _id: "$_id.code",
           salesByDay: { $push: { day: "$_id.day", count: "$dailySales" } }
         }
+      },
+      {
+        $lookup: {
+          from: "stock_count",
+          localField: "_id",
+          foreignField: "_id",
+          as: "stockInfo"
+        }
+      },
+      {
+        $addFields: {
+          stock: { $arrayElemAt: ["$stockInfo.stock", 0] }
+        }
       }
     ]).toArray();
-    
-    
 
-    // Prepare the sales map
     const salesMap = salesData.reduce((acc, item) => {
-      acc[item._id] = item.salesByDay.reduce((map, daySale) => {
-        map[daySale.day] = daySale.count;
-        return map;
-      }, {});
+      acc[item._id] = {
+        salesByDay: item.salesByDay.reduce((map, daySale) => {
+          map[daySale.day] = daySale.count;
+          return map;
+        }, {}),
+        stock: item.stock || 0
+      };
       return acc;
     }, {});
 
-    // Prepare final data array including products with no sales
     const numDays = endMonth.getDate();
     const finalData = products.map(product => ({
       category: product.cate_id,
@@ -454,18 +461,20 @@ app.get('/get-sales-data', async (req, res) => {
       importType: product.stock_kind,
       dailySales: Array.from({ length: numDays }, (_, i) => ({
         day: i + 1,
-        count: salesMap[product.good_id] ? salesMap[product.good_id][i + 1] || 0 : 0
+        count: salesMap[product.good_id] ? salesMap[product.good_id].salesByDay[i + 1] || 0 : 0
       })),
-      totalSales: Object.values(salesMap[product.good_id] || {}).reduce((a, b) => a + b, 0),
-      stock: product.stock || 'N/A'
+      totalSales: Object.values(salesMap[product.good_id] ? salesMap[product.good_id].salesByDay : {}).reduce((a, b) => a + b, 0),
+      stock: salesMap[product.good_id] ? salesMap[product.good_id].stock : 'N/A'
     }));
-    console.log(finalData[3].productName, finalData[3].dailySales)
+
+    // console.log(finalData[0].productName, finalData[0].dailySales, finalData[0].stock);
     res.json(finalData);
   } catch (error) {
     console.error('Failed to fetch sales data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 const getKrDate = () => {
