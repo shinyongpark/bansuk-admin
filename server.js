@@ -82,7 +82,7 @@ app.get('/get-products', async (req, res) => {
   }
   try {
     // Fetch products based on the category
-    const products = await db.collection('product_list').find({ cate_id: category }).toArray();
+    const products = await db.collection('product_list').find({ cate_id: category, good_exist: 'y' }).toArray();
     // Fetch stock counts and map them into an object for quick lookup
     const stockCounts = await db.collection('stock_count').find({
       _id: { $in: products.map(p => p.good_id) }
@@ -122,6 +122,28 @@ app.get('/get-products', async (req, res) => {
     res.json(enrichedProducts);
   } catch (error) {
     console.error('Failed to fetch products:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/get-total-prime-cost', async (req, res) => {
+  try {
+    const products = await db.collection('product_list').find({ good_exist: 'y' }).toArray();
+    const stockCounts = await db.collection('stock_count').find().toArray();
+    const stockMap = stockCounts.reduce((map, item) => {
+      map[item._id] = parseInt(item.stock);
+      return map;
+    }, {});
+
+    const totalPrimeCost = products.reduce((acc, product) => {
+      const productStock = stockMap[product.good_id] || 0;
+      const productCost = parseFloat(product.prime_cost) || 0;
+      return acc + (productCost * productStock);
+    }, 0);
+
+    res.json({ totalPrimeCost });
+  } catch (error) {
+    console.error('Failed to calculate total prime cost:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
+  CAlert,
   CButton,
   CCard,
   CCardBody,
@@ -22,10 +23,21 @@ const ProductsByCategory = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [products, setProducts] = useState([]);
   const [updateProducts, setUpdateProducts] = useState([]);
+  const [totalPrimeCost, setTotalPrimeCost] = useState(0);
 
   useEffect(() => {
     fetchCategories();
+    fetchTotalPrimeCost();
   }, []);
+
+  const fetchTotalPrimeCost = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/get-total-prime-cost');
+      setTotalPrimeCost(response.data.totalPrimeCost);
+    } catch (error) {
+      console.error('Error fetching total prime cost:', error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -98,6 +110,9 @@ const ProductsByCategory = () => {
   return (
     <CRow>
       <CCol xs={12}>
+        <CAlert color="info">
+          <h4>원가 총합: ₩{totalPrimeCost}</h4>
+        </CAlert>
         {categories.map((category) => (
           <CCard key={category.id} className="mb-3">
             <CCardHeader>
@@ -117,7 +132,7 @@ const ProductsByCategory = () => {
                       <CTableHeaderCell scope="col">공장</CTableHeaderCell>
                       <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
                       <CTableHeaderCell scope="col">총액</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell>
+                      {/* <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell> */}
                       <CTableHeaderCell scope="col">변경 원가</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
@@ -129,8 +144,8 @@ const ProductsByCategory = () => {
                         <CTableDataCell>{product.id}</CTableDataCell>
                         <CTableDataCell>{product.factory}</CTableDataCell>
                         <CTableDataCell>{product.primeCost}</CTableDataCell>
-                        <CTableDataCell>{'Calculated Total'}</CTableDataCell>
-                        <CTableDataCell>{'Latest Change Date'}</CTableDataCell>
+                        <CTableDataCell>{product.primeCost * product.stock}</CTableDataCell>
+                        {/* <CTableDataCell>{'Latest Change Date'}</CTableDataCell> */}
                         <CTableDataCell>
                           <CFormInput
                             type="text"
