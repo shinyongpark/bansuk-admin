@@ -89,6 +89,8 @@ const ProductsByCategory = () => {
       const response = await axios.post('http://localhost:8080/update-product-cost', {
         id,
         newPrimeCost: newCost
+      }, {
+        withCredentials: true
       });
 
       // Handling the response from the server

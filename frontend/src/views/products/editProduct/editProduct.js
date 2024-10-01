@@ -94,6 +94,7 @@ const EditProduct = () => {
     try {
       await axios.post('http://localhost:8080/edit-products', productDetails, {
         headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
       });
       alert('Product updated successfully!');
     } catch (error) {

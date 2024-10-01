@@ -162,6 +162,11 @@ async function getNextUID(collectionName) {
 
 app.post('/add-incoming-goods', async (req, res) => {
   try {
+    const verified = verify_user(req.cookies, true)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+    }
+
     const nextUID = await getNextUID('incoming_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
 
@@ -202,6 +207,11 @@ app.post('/add-incoming-goods', async (req, res) => {
 
 app.post('/add-outgoing-goods', async (req, res) => {
   try {
+    const verified = verify_user(req.cookies, true)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+    }
+
     const nextUID = await getNextUID('outgoing_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
     const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
@@ -239,6 +249,11 @@ app.post('/add-outgoing-goods', async (req, res) => {
 });
 
 app.post('/edit-products', async (req, res) => {
+  const verified = verify_user(req.cookies, true)
+  if (!verified) {
+    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+  }
+
   console.log('reached')
   const {
     code: good_id,
@@ -290,6 +305,11 @@ app.post('/edit-products', async (req, res) => {
 });
 
 app.post('/add-product', async (req, res) => {
+  const verified = verify_user(req.cookies, true)
+  if (!verified) {
+    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+  }
+
   const {
     importType: importType,
     category: category,
@@ -340,6 +360,11 @@ app.post('/add-product', async (req, res) => {
 });
 
 app.post('/update-product-cost', async (req, res) => {
+  const verified = verify_user(req.cookies, true)
+  if (!verified) {
+    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+  }
+
   const { id, newPrimeCost } = req.body; // Destructure the relevant data from request body
 
   if (!id || newPrimeCost === undefined) {
@@ -497,13 +522,16 @@ app.get('/get-sales-data', async (req, res) => {
   }
 });
 
-
-
 const getKrDate = () => {
   const utc = Date.now()
   const kr_time_diff = 9 * 60 * 60 * 1000;
   const kr_curr = new Date(utc + kr_time_diff);
   return kr_curr
+}
+
+// convert utc or Date format to Date format
+const convertDate = (time) => {
+  return time instanceof Date ? time : new Date(time * 1000)
 }
 
 const secretKey = process.env.JWT_SECRET_KEY
@@ -543,19 +571,24 @@ app.post('/login/verify-user', async (req, res) => {
 
 //strict=true when only 관리자 is authorized otherwise any staff is authorized
 const verify_user = (cookies, strict) => {
-  // console.log("verify_user", cookies, strict)
-  const token = cookies.token
-  jwt.verify(token, secretKey);
-  const decoded = jwt.decode(token);
-  // console.log(decoded, decoded.authUser, typeof decoded.authUser)
-  if (strict && decoded.authUser !== "true") {
-    return false;
+  try {
+    // console.log("verify_user", cookies, strict)
+    const token = cookies.token
+    jwt.verify(token, secretKey);
+    const decoded = jwt.decode(token);
+    // console.log(decoded, decoded.authUser, typeof decoded.authUser)
+    if (strict && decoded.authUser !== "true") {
+      return false;
+    }
+    // always verify name
+    if (decoded.name !== cookies.name) {
+      return false
+    }
+    return true;
+  } catch (err) {
+    return false; //fail verfiy
   }
-  // always verify name
-  if (decoded.name !== cookies.name) {
-    return false
-  }
-  return true;
+
 }
 
 app.post('/register/userInfo', async (req, res) => {
@@ -678,7 +711,7 @@ app.post('/customer-support/search', async (req, res) => {
       ]).sort({ 'reg_date': -1 }).toArray();
     } else {
       // no userinput, limit result to 1000 ordered by reg_date
-      ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': 1 }).limit(1000).toArray();
+      ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
     }
 
     // console.log("server", typeof select_lists, select_lists)
@@ -699,21 +732,22 @@ app.post('/customer-support/search-consultations', async (req, res) => {
     // console.log("server", req.body.group_uid, typeof req.body.group_uid);
     const c_table = await db.collection('counsel_table').find({ 'group_uid': req.body.group_uid }).toArray();
     const m_table = await db.collection('manager_table').find({ 'group_uid': req.body.group_uid }).toArray();
-    console.log("server", c_table)
+    // console.log("server", c_table)
     // console.log("server", m_table)
     //add a field; change dates from UNIX_TIMESTAMP to ISO Date
+
     const c_table_mod = c_table.map(item => ({
       ...item,
       table: "c",
-      reg_date: new Date(item.reg_date * 1000),
-      end_date: new Date(item.end_date * 1000),
+      reg_date: convertDate(item.reg_date),
+      end_date: convertDate(item.end_date),
     }));
 
     const m_table_mod = m_table.map(item => ({
       ...item,
       table: "m",
-      reg_date: new Date(item.reg_date * 1000),
-      end_date: new Date(item.end_date * 1000),
+      reg_date: convertDate(item.reg_date),
+      end_date: convertDate(item.end_date),
     }));
     // console.log("server c_table_mod", c_table_mod)
     // console.log("server m_table_mod", m_table_mod)
@@ -729,6 +763,62 @@ app.post('/customer-support/search-consultations', async (req, res) => {
     return res.json(combined_sorted_list);
   } catch (error) {
     console.error('Failed to fetch customer-suport-consultations:', error);
+    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
+app.post('/customer-support/search-ConsultationsTable', async (req, res) => {
+  try {
+    const today = getKrDate();
+    const start_date = req.body.startDate ? new Date(req.body.startDate) : new Date(today.setHours(0, 0, 0, 0));
+    const end_date = req.body.endDate ? new Date(req.body.endDate) : new Date(today.setHours(23, 59, 59, 999));
+
+    // Find query with MongoDB
+    const c_table = await db.collection('counsel_table').find({
+      $or: [
+        {
+          reg_date: { // For Date objects
+            $gte: start_date,
+            $lte: end_date
+          }
+        },
+        {
+          reg_date: { // For Strings in milSec
+            $gte: start_date.getTime().toString(),
+            $lte: end_date.getTime().toString()
+          }
+        }
+      ]
+    }).sort({ counsel_result: -1 }).toArray();
+
+    const groupUids = [...new Set(c_table.map(row => row.group_uid))]; // Assuming c_table has group_uid
+
+    const buyers = await db.collection('external_buyer_table').find({
+      group_uid: { $in: groupUids } // Only fetch buyers with matching group_uids
+    }).toArray();
+
+    // Create a map for quick lookup based on group_uid
+    const buyerMap = {};
+    buyers.forEach(buyer => {
+      buyerMap[buyer.group_uid] = buyer.purchaser_name;
+    });
+
+    const c_table_mod = c_table.map(item => ({
+      ...item,
+      table: "c",
+      reg_date: convertDate(item.reg_date),
+      end_date: convertDate(item.end_date),
+      buyer_name: buyerMap[item.group_uid]
+    }));
+    if (c_table_mod.length === 0) {
+      console.log('No data found in the database.??');
+    } else {
+      console.log('sending: ', c_table_mod.length);
+    }
+
+    return res.json(c_table_mod);
+  } catch (error) {
+    console.error('Failed to fetch customer-support-searchASTable:', error);
     return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
   }
 });
@@ -751,6 +841,30 @@ app.get('/customer-support/search-ASTable', async (req, res) => {
     return res.json(m_table_mod);
   } catch (error) {
     console.error('Failed to fetch customer-support-searchASTable:', error);
+    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
+app.post('/customer-support/search-ASTable/resolved', async (req, res) => {
+  const verified = verify_user(req.cookies, false)
+  if (!verified) {
+    return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
+  }
+
+  try {
+    const m_table = await db.collection('manager_table').updateOne(
+      { uid: req.body.id }, // find by uid
+      [
+        { $set: { proceed: "1" } }
+      ]
+    );
+    if (!m_table.acknowledged) {
+      return res.status(500).send("update operation failed.");
+    }
+
+    return res.json(m_table);
+  } catch (error) {
+    console.error('Failed to fetch customer-support-searchASTable-resolved:', error);
     return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
   }
 });
@@ -785,7 +899,7 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
     }
 
     const nextUID = String(await getNextUID("counsel_table"))
-    console.log("customer-support/submit-consultations nextUID", nextUID)
+    // console.log("customer-support/submit-consultations nextUID", nextUID)
     // return res.send(201);
     const kr_time = getKrDate()
     const c_table = await db.collection('counsel_table').insertOne(
@@ -812,7 +926,7 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
       { uid: req.body.external_uid }, // Query to find the product by code
       [
         { $set: { counsel_uid: nextUID } },
-        { $set: { counsel_result: req.body.counselResult } },
+        { $set: { counsel_result: req.body.counselResult.value } },
         { $set: { mod_date: kr_time } }
       ]
     );
@@ -820,10 +934,10 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
       return res.status(500).send("Insert operation failed.");
     }
 
-    console.log(nextUID, typeof nextUID)
+    // console.log(nextUID, typeof nextUID)
     const added_counsel = await db.collection('counsel_table').findOne({ 'uid': nextUID })
     added_counsel["table"] = "c" // used in frontned
-    console.log(added_counsel)
+    // console.log(added_counsel)
     if (!added_counsel) {
       console.log('No data found in the database.??');
     } else {
@@ -837,9 +951,53 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
   }
 });
 
+
+app.post('/customer-support/edit-consultations', async (req, res) => {
+  try {
+    console.log("server, customer-support/edit-consultations req.body", req.body)
+
+    // verify user
+    // console.log(req.cookies, req.cookies.token)
+    const verified = verify_user(req.cookies, false)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
+    }
+
+    const kr_time = getKrDate()
+    const c_table = await db.collection('counsel_table').updateOne(
+      { uid: req.body.id }, // Query to find the product by code
+      [
+        { $set: { counsel_content: req.body.content } },
+        { $set: { end_date: new Date(req.body.completionTime) } },
+        { $set: { counsel_time: kr_time } }
+      ]
+    );
+    if (!c_table.acknowledged) {
+      return res.status(500).send("Update operation failed.");
+    }
+
+    // console.log(nextUID, typeof nextUID)
+    const added_counsel = await db.collection('counsel_table').findOne({ 'uid': req.body.id })
+    added_counsel["table"] = "c" // used in frontned
+    // console.log(added_counsel)
+    if (!added_counsel) {
+      console.log('No data found in the database.??');
+    } else {
+      console.log('sending: 1',);
+    }
+
+    return res.json([added_counsel]); //wrap it to a list
+  } catch (error) {
+    console.error('Failed to fetch customer-support-searchASTable-edit-consultations:', error);
+    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {
   var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
   console.log("unknown request:", fullUrl);
   return res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
 });
+
+

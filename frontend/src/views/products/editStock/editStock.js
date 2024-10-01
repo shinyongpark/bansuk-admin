@@ -41,30 +41,30 @@ const EditStock = () => {
 
   const fetchCategories = async () => {
     try {
-        const response = await axios.get('http://localhost:8080/get-categories');
-        console.log('Fetched categories:', response.data);
-        setCategories(response.data);
+      const response = await axios.get('http://localhost:8080/get-categories');
+      console.log('Fetched categories:', response.data);
+      setCategories(response.data);
     } catch (error) {
-        console.error('Error fetching categories:', error);
+      console.error('Error fetching categories:', error);
     }
   };
 
   const fetchProducts = async (category) => {
     try {
-        const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
-        setProducts(response.data);
+      const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
+      setProducts(response.data);
     } catch (error) {
-        console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
-        ...prev,
-        [name]: value,
-        ...(name === 'category' && { cate_id: value }),  // Automatically set cate_id when category changes
-        ...(name === 'productName' && { code: value, good_name: products.find(p => p.id === value)?.productName })  // Set code and good_name when product changes
+      ...prev,
+      [name]: value,
+      ...(name === 'category' && { cate_id: value }),  // Automatically set cate_id when category changes
+      ...(name === 'productName' && { code: value, good_name: products.find(p => p.id === value)?.productName })  // Set code and good_name when product changes
     }));
   };
 
@@ -72,20 +72,21 @@ const EditStock = () => {
     e.preventDefault();
     const requestBody = JSON.stringify(formData);
     const url = formData.transactionType === 'incoming' ?
-                'http://localhost:8080/add-incoming-goods' : 
-                'http://localhost:8080/add-outgoing-goods';
+      'http://localhost:8080/add-incoming-goods' :
+      'http://localhost:8080/add-outgoing-goods';
 
     try {
-        const response = await axios.post(url, requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        console.log('Success:', response.data);
-        alert('Form submitted successfully!');
+      const response = await axios.post(url, requestBody, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      });
+      console.log('Success:', response.data);
+      alert('Form submitted successfully!');
     } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to submit the form');
+      console.error('Error:', error);
+      alert('Failed to submit the form');
     }
   };
 

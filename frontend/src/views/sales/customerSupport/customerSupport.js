@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker'
 import Select from 'react-select';
 import axios from 'axios';
+import { getDataFromFile } from './parseCSV.js';
 import {
     CButton,
     CCard,
@@ -38,6 +39,31 @@ const CustomerSupport = () => {
     const [staffNames, setStaffNames] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // page 1 file upload - 첨부파일
+    const [modalVisible, setModalVisible] = useState(false); //used for popup visibility
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [error, setError] = useState(''); // print error msg
+    // page 1 test pass/fail
+    const [isTestPassed, setIsTestPassed] = useState(false);
+    const [orderData, setOrderData] = useState([]);
+    const [uploadedFileName, setUploadedFileName] = useState('');
+
+
+    // page 1 AS 현황
+    const [visibleASTable, setVisibleASTable] = useState(false); //used for popup visibility
+    const [selectedCounselerASTable, setSelectedCounselerASTable] = useState(""); //store when user picks the counseler/consultant
+    const [consultationsAS, setConsultationsAS] = useState([]); // list of AS consultations
+    const [consultationsASTable, setConsultationsASTable] = useState([]); // list of AS consultations shown in table
+    const [selectedRowASTable, setSelectedRowASTable] = useState(null);
+    const [selectedRowResASTable, setSelectedRowResASTable] = useState(null); // resolved AS consultation -> remove from the AS Table
+    const [visibleASTableConfirmModal, setVisibleASTableConfirmModal] = useState(false); // Confirmation Modal visibility state
+
+    // page 1 날짜별 상담내역 조회
+    const [visibleConsultationsTable, setVisibleConsultationsTable] = useState(false); //used for popup visibility
+    const [selectedRowConsultationsTable, setSelectedRowConsultationsTable] = useState(null);
+    const [consultationsDateTable, setConsultationsDateTable] = useState([]); // list of AS consultations search by date
+
+
     // page2 show search result
     const [tableData, setTableData] = useState([]);
     const [selectedRow, setSelectedRow] = useState(null); // saves the user selection on page2 for page3
@@ -47,18 +73,10 @@ const CustomerSupport = () => {
     // page4 show search result for consultations (상담내역)
     const [consultations, setConsultations] = useState([]);
     const [newConsultations, setNewConsultations] = useState([]); // when user sends a new consultation
-    const [selectedRow_Consult, setSelectedRow_Consult] = useState(null); // when user selects the consultation
+    const [selectedRowConsult, setSelectedRowConsult] = useState(null); // when user selects the consultation
 
-    const [visibleASTable, setVisibleASTable] = useState(false); //used for popup visibility
-    const [selectedCounselerASTable, setSelectedCounselerASTable] = useState(""); //store when user picks the counseler/consultant
-    const [consultationsAS, setConsultationsAS] = useState([]); // list of AS consultations
-    const [consultationsASTable, setConsultationsASTable] = useState([]); // list of AS consultations shown in table
-    const [selectedRowASTable, setSelectedRowASTable] = useState(null);
 
-    // file upload - 첨부파일
-    const [modalVisible, setModalVisible] = useState(false); //used for popup visibility
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [error, setError] = useState(''); // print error msg
+
 
     //same fields as tableData; kept all fields just for debugging
     const [productDetails, setProductDetails] = useState({
@@ -104,11 +122,12 @@ const CustomerSupport = () => {
                 const response = await axios.post('http://localhost:8080/customer-support/search-consultations', selectedRow, {
                     headers: { 'Content-Type': 'application/json' },
                 });
-                console.log("cs listArray", listArray)
-
                 const consultations = transformData_counsel(response);
-                // console.log("customersupport consultations", consultations)
-                setConsultations(consultations);
+
+                // check if one of them is result==7(처리완료) if so reassign all 상태 to 처리 완료
+                // this will NOT change the info in DB 
+                const checkedConsultations = checkCounselResults(consultations);
+                setConsultations(checkedConsultations);
             };
 
             fetchConsultations();
@@ -117,9 +136,17 @@ const CustomerSupport = () => {
 
 
     // helper functions ///////////////////////////////////////////////////////////////////////////////////
+    const getKrDate = () => {
+        const utc = Date.now()
+        const kr_time_diff = 9 * 60 * 60 * 1000;
+        const kr_curr = new Date(utc + kr_time_diff);
+        return kr_curr
+    }
+
     // get all options for SELECT lists
     const fetchSelectList = async () => {
         try {
+            setLoading(true);
             const response = await axios.get('http://localhost:8080/get-select-list');
             // console.log("customerSupport", typeof response, response)
             const parsedCompanies = response.data.order_company.map(item => ({
@@ -157,8 +184,12 @@ const CustomerSupport = () => {
             setProducts(allProducts);
 
             setListArray(response.data)
+            setLoading(false);
+            return;
         } catch (error) {
             console.error('Error fetching categories:', error);
+            setLoading(false);
+            return;
         }
     };
 
@@ -168,23 +199,38 @@ const CustomerSupport = () => {
         console.log(response.data)
         return response.data.map(item => ({
             id: item.uid,  // Corresponding field from DB
+            group_uid: item.group_uid || '',
+            external_uid: item.external_uid,
             startDate: item.reg_date.split('T')[0],  // Format date
             endDate: item.end_date.split('T')[0],  // Format date
             counselSection: item.table === "c" ? listArray.counsel_section[Number(item.counsel_section)] : counselResult_m[Number(item.proceed)],  // Assuming this corresponds to category
-            inputer: item.table === "c" ? item.counseler : item.manager, // m.manager or c.counseler
+            counseler: item.table === "c" ? item.counseler : item.manager, // m.manager or c.counseler
             counselResult: listArray.counsel_result[Number(item.counsel_result)],
             content: item.counsel_content,
+            buyerName: item.buyer_name || '',
         }));
     };
+
+    //check if consultation is resolved
+    function checkCounselResults(consultations) {
+        const hasProcessed = consultations.some(item => item.counselResult === "처리완료");
+
+        if (hasProcessed) {
+            consultations.forEach(item => {
+                item.counselResult = "처리완료";
+            });
+        }
+        return consultations;
+    }
 
     // change external buyer data fields from DB to web
     const transformData_external = (response) => response.data.map(item => ({
         company: item.order_company || '',
-        group_uid: item.group_uid,
+        group_uid: item.group_uid || '',
         uid: item.uid,
         productName: item.goods_name || '',
         counselSection: item.counsel_section || '',
-        counselResult: item.counsel_result || '',
+        counselResult: listArray.counsel_result[Number(item.counsel_result)] || '',
         startDate: item.reg_date.split('T')[0] || '',
         buyerName: item.purchaser_name || '',
         buyerPhoneLast4: item.purchaser_tel1?.slice(-4) || '',
@@ -204,8 +250,21 @@ const CustomerSupport = () => {
         supplyPrice: item.supply_price || '', //공급금액
         salePrice: item.selling_price || '',  //판매금액
         paymentAmount: item.settlement_price || '', //결제금액
-        request: item.comments || '',
-        group_uid: item.group_uid || '',
+        request: item.comments || ''
+    }));
+
+    // change manager table data fields from DB to web
+    const transformData_manager = (response) => response.data.map(item => ({
+        id: item.uid,
+        group_uid: item.group_uid,
+        external_uid: item.external_uid,
+        startDate: item.reg_date.split('T')[0],  // Format date
+        recipient: item.name,
+        productName: item.good_name,
+        counselResult: listArray.counsel_result[Number(item.counsel_result)],
+        counseler: item.counseler,
+        content: item.counsel_content,
+        manager: item.manager
     }));
 
     // getting url from invoiceNo for delivery status
@@ -320,18 +379,7 @@ const CustomerSupport = () => {
         try {
             //get all AS data; when user changes the staffNames list then fliter
             const response = await axios.get('http://localhost:8080/customer-support/search-ASTable');
-            const consultations = response.data.map(item => ({
-                id: item.uid,
-                group_uid: item.group_uid,
-                external_uid: item.external_uid,
-                startDate: item.reg_date.split('T')[0],  // Format date
-                recipient: item.name,
-                productName: item.good_name,
-                counselResult: item.counsel_result,
-                counseler: item.counseler,
-                content: item.counsel_content,
-                manager: item.manager
-            }));
+            const consultations = transformData_manager(response);
 
             // Update the state with the transformed data
             setConsultationsASTable(consultations)
@@ -362,7 +410,88 @@ const CustomerSupport = () => {
         return;
     };
 
+    const handleASTableConfirm = async () => {
+        // Proceed with the action when the user clicks "네"
+        console.log('Proceed with action for:', selectedRowResASTable);
+        // set proceed = 1: resolved = 반품 완료
+        try {
+            const response = await axios.post('http://localhost:8080/customer-support/search-ASTable/resolved', selectedRowResASTable, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+        } catch (error) {
+            console.error('Error updating data:', error);
+            return;
+        }
 
+        // reload AS Table
+        try {
+            //get all AS data; when user changes the staffNames list then fliter
+            const response = await axios.get('http://localhost:8080/customer-support/search-ASTable');
+            const consultations = transformData_manager(response);
+
+            // Update the state with the transformed data
+            setConsultationsASTable(consultations);
+            setVisibleASTableConfirmModal(false);
+            return setConsultationsAS(consultations);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            return;
+        }
+
+    };
+
+    const handleASTableCancel = () => {
+        // Handle "아니요" action
+        console.log('Action canceled');
+        setVisibleASTableConfirmModal(false);
+        return;
+    };
+
+    // Page 1 : 상담내역: consultationTable ////////////////////////////////////////////////////////////////////////////
+    // when the user hits "상담내역 조회", shows pop up
+    const handleConsultationsView = async (e) => {
+        e.preventDefault();
+        setVisibleConsultationsTable(!visibleConsultationsTable);
+        try {
+            //get all consultation data
+            const response = await axios.post('http://localhost:8080/customer-support/search-ConsultationsTable', productDetails, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const consultations = transformData_counsel(response);
+
+            // Update the state with the transformed data
+            setConsultationsDateTable(consultations)
+            return;
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            return;
+        }
+    };
+
+
+    // when user selects the row, shows on page 2
+    const handleCheckboxChangeConsultationsTable = async (row) => {
+        console.log("handleCheckboxChangeConsultationsTable", row)
+        setSelectedRowConsultationsTable(row);
+
+        const foundSelected = tableData.filter((row_table) => row_table.group_uid === row.group_uid)[0]
+        if (foundSelected) {
+            setSelectedRow(foundSelected);
+        } else {
+            console.log(row);
+            const response = await axios.post('http://localhost:8080/customer-support/search-ASTable/consultations', row, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const transformedData = transformData_external(response);
+
+            // show it to Page2; user will select there
+            setTableData(transformedData);
+            setSelectedRow(null); // reset the selectedrow to reset the page3 page
+        }
+        return;
+    };
 
     // Page1: 첨부파일: file upload //////////////////////////////////////////////////////////////////////////////////
     const handleUploadView = () => {
@@ -386,10 +515,60 @@ const CustomerSupport = () => {
 
     const handleUpload = () => {
         if (selectedFile) {
-            // Implement the upload logic here
             console.log('Uploading file:', selectedFile);
-            // Close modal after upload or after you perform the upload operation
+            setUploadedFileName(selectedFile.name)
             setModalVisible(false);
+            setIsTestPassed(false); //reset when uploading
+            return;
+        }
+    };
+
+    // Page1: 주문서 저장 및 재고 파악: test //////////////////////////////////////////////////////////////////////////////////
+    // do all checking 1. get_data_from_file() / check_date() / check_good_name_rule() / grouping_goods() /  2. check_data()
+    const handleOrderCheck = async () => {
+        try {
+            setLoading(true);
+            setIsTestPassed(false); //reset when checking
+            if (!productDetails.orderCount || !Number(productDetails.orderCount)) {
+                alert("총 주문수를 확인해주세요");
+            } else if (!selectedFile) {
+                alert("첨부 파일을 선택해주세요");
+            } else {
+                const response = await getDataFromFile(selectedFile, productDetails.orderCount, listArray.order_company);
+                if (!response[0]) {
+                    alert(response[1]);
+                } else {
+                    alert("모든 포멧과 총 주문수가 맞습니다");
+                    setOrderData(response[1])
+                    setIsTestPassed(true);
+                }
+            }
+            setLoading(false);
+            return;
+        } catch (error) {
+            alert(error);
+            setLoading(false);
+            return;
+        }
+    };
+
+    //insert data to DB
+    const submitOrderCheck = async () => {
+        try {
+            setLoading(true);
+            console.log("submitOrderCheck orderData", orderData);
+
+
+
+            // reset after submit
+            setLoading(false);
+            setIsTestPassed(false);
+            setSelectedFile(null);
+            return;
+        } catch (error) {
+            alert(error);
+            setLoading(false);
+            return;
         }
     };
 
@@ -412,7 +591,7 @@ const CustomerSupport = () => {
     const handleCheckboxChange = async (row) => {
         setNewConsultations(prevState => ({
             ...prevState,
-            consultationTime: new Date().toLocaleString(),
+            consultationTime: getKrDate(),
             counseler: sessionStorage.getItem('name')
         }));
         // console.log("handleCheckboxChange, row", row)
@@ -467,12 +646,25 @@ const CustomerSupport = () => {
         });
     };
     const handleCheckboxChange_Consult = (row) => {
-        setSelectedRow_Consult(row);
+        setSelectedRowConsult(row);
     };
+
+    const handleNewConsultation = () => {
+        setSelectedRowConsult(null);
+        setNewConsultations({
+            consultationTime: getKrDate(),
+            counseler: sessionStorage.getItem('name')
+        });
+        return;
+    }
 
     // when user submits new consultation 
     const handleConsulation = async () => {
-        newConsultations["completionTime"] = new Date().toLocaleString();
+        if (!newConsultations.content || !newConsultations.counselResult || !newConsultations.counselSection) {
+            alert("모두 작성해주세요");
+            return;
+        }
+        newConsultations["completionTime"] = getKrDate();
         newConsultations["group_uid"] = selectedRow.group_uid;
         newConsultations["external_uid"] = selectedRow.uid;
         try {
@@ -485,24 +677,73 @@ const CustomerSupport = () => {
                 headers: { 'Content-Type': 'application/json' },
             });
             const consultations_new = transformData_counsel(response_search);
-            setConsultations(consultations_new);
+            const checkedConsultations = checkCounselResults(consultations_new)
+            setSelectedRowConsult(null);
+            setNewConsultations({
+                consultationTime: getKrDate(),
+                counseler: sessionStorage.getItem('name')
+            });
+            setConsultations(checkedConsultations);
+            return;
         } catch (error) {
             console.error('Error fetching data:', error);
+            return;
         }
     };
+
+    const handleSelectedRowConsult = async (selectedRowConsult) => {
+        if (!newConsultations.content) {
+            alert("상담 내용을 작성해주세요");
+            return;
+        }
+        try {
+            setLoading(true);
+            newConsultations["id"] = selectedRowConsult.id
+            newConsultations["completionTime"] = getKrDate()
+            console.log("handleSelectedRowConsult", newConsultations);
+            const response = await axios.post('http://localhost:8080/customer-support/edit-consultations', newConsultations, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+            //update consultations in page 4
+            const response_search = await axios.post('http://localhost:8080/customer-support/search-consultations', selectedRow, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const consultations_new = transformData_counsel(response_search);
+            setConsultations(consultations_new);
+            setSelectedRowConsult(null)
+            setLoading(false);
+            return;
+        } catch (error) {
+            setLoading(false);
+            alert("수정이 불가능합니다", error)
+            console.error('Error fetching data:', error);
+            return;
+        }
+    }
 
     // change color coding for page 4 based on counsel_result
     // if want to change color or add new go to frontend/src/scss/_custom.scss
     const getRowClassConsultation = (result) => {
         switch (result) {
-            case '성공':
-                return 'success-row';
-            case '상태 확인':
+            case '':
+                return 'in-progress-row';
+            case '송장접수':
+                return 'in-progress-row';
+            case '교환':
                 return 'failure-row';
             case '반품':
+                return 'failure-row';
+            case 'A/S':
                 return 'in-progress-row';
-            default:
+            case '------':
+                return 'in-progress-row';
+            case '기타':
+                return 'in-progress-row';
+            case '처리완료':
                 return 'other';
+            default: //처리완료
+                return 'return-row'; //unknown type??
         }
     };
 
@@ -518,12 +759,82 @@ const CustomerSupport = () => {
                         <strong>주문 검색</strong>
                     </CCardHeader>
                     <CCardBody>  {/* Opening tag for CCardBody */}
-                        {loading && (
-                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                        <CModal visible={loading} backdrop="static" keyboard={false} size="sm">
+                            <CModalBody style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                 <CSpinner color="primary" /> <span style={{ marginLeft: '10px' }}>Loading...</span>
+                            </CModalBody>
+                        </CModal>
+
+                        <CCol md={12}>
+                            <div style={{ backgroundColor: '#f0f0f0', padding: '1rem', borderRadius: '5px' }}>
+                                <CRow className="d-flex align-items-center">
+                                    <div style={{ flex: 1, marginRight: '0rem' }}>
+                                        <CFormLabel>첨부파일</CFormLabel>
+                                    </div>
+                                    <div style={{ flex: 1, marginRight: '0.5rem' }}>
+                                        <CButton color="dark" type="button" onClick={handleUploadView}>파일선택</CButton>
+                                    </div>
+
+                                    <div style={{ flex: 1, marginRight: '0rem' }}>
+                                        <CFormLabel>총 주문수</CFormLabel>
+                                    </div>
+                                    <div style={{ flex: 1, marginRight: '0.5rem' }}>
+                                        <CFormInput name="orderCount" placeholder="0" onChange={handleChange} />
+                                    </div>
+
+                                    <div style={{ flex: 2, marginRight: '0rem' }}>
+                                        <CFormLabel>주문서 저장 및 재고 파악</CFormLabel>
+                                    </div>
+                                    <div style={{ flex: 1, marginRight: '0.2rem' }}>
+                                        <CButton color="dark" type="button" onClick={handleOrderCheck}>
+                                            TEST
+                                        </CButton>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <CButton
+                                            color="dark"
+                                            type="button"
+                                            onClick={submitOrderCheck}
+                                            disabled={!isTestPassed} // Disable the button based on the test result
+                                        >
+                                            등록하기
+                                        </CButton>
+                                    </div>
+                                </CRow>
+                                {/* Display the uploaded file name */}
+                                {uploadedFileName && <div style={{ marginTop: '1rem', fontWeight: 'bold' }}>Uploaded File: {uploadedFileName}</div>}
                             </div>
-                        )}
-                        <CForm className="row g-3">
+                        </CCol>
+
+
+
+
+                        {/* ///////////////////////// page1: 첨부파일; file upload start //////////////////////////////////////////////////////////////////////////// */}
+                        <CModal visible={modalVisible} onClose={() => setModalVisible(false)}>
+                            <CModalHeader>
+                                <CModalTitle>Upload CSV File</CModalTitle>
+                            </CModalHeader>
+                            <CModalBody>
+                                <CFormInput
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleFileChange}
+                                />
+                                {error && <div className="text-danger">{error}</div>}
+                            </CModalBody>
+                            <CModalFooter>
+                                <CButton color="secondary" onClick={() => setModalVisible(false)}>
+                                    Close
+                                </CButton>
+                                <CButton color="primary" onClick={handleUpload} disabled={!selectedFile}>
+                                    Upload
+                                </CButton>
+                            </CModalFooter>
+                        </CModal>
+                        {/* ///////////////////////// page1: 첨부파일; file upload end //////////////////////////////////////////////////////////////////////////// */}
+
+
+                        <CForm className="row g-3" style={{ marginBottom: '1rem' }}>
                             {/* 업체명 */}
                             <CCol md={4}>
                                 <CFormLabel>업체명</CFormLabel>
@@ -635,14 +946,15 @@ const CustomerSupport = () => {
                                         <CTable hover striped>
                                             <CTableHead>
                                                 <CTableRow>
-                                                    <CTableHeaderCell></CTableHeaderCell>
-                                                    <CTableHeaderCell>날짜</CTableHeaderCell>
-                                                    <CTableHeaderCell>수취인</CTableHeaderCell>
-                                                    <CTableHeaderCell>제품명</CTableHeaderCell>
-                                                    <CTableHeaderCell>분류</CTableHeaderCell>
-                                                    <CTableHeaderCell>상담자</CTableHeaderCell>
-                                                    <CTableHeaderCell>내용</CTableHeaderCell>
-                                                    <CTableHeaderCell>입력자</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '10px' }}></CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '100px' }}>날짜</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '100px' }}>수취인</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '100px' }}>제품명</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '50px' }}>처리상태</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '50px' }}>상담자</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '200px' }}>내용</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '50px' }}>입력자</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '10px' }}>확인</CTableHeaderCell>
                                                 </CTableRow>
                                             </CTableHead>
                                             <CTableBody>
@@ -651,8 +963,8 @@ const CustomerSupport = () => {
                                                         <CTableDataCell>
                                                             <CFormCheck
                                                                 type="radio"
-                                                                onChange={() => handleCheckboxChangeASTable(row)}
-                                                                checked={selectedRowASTable === row}
+                                                                onChange={() => handleCheckboxChangeConsultationsTable(row)}
+                                                                checked={selectedRowConsultationsTable === row}
                                                             />
                                                         </CTableDataCell>
                                                         <CTableDataCell>{row.startDate}</CTableDataCell>
@@ -662,12 +974,17 @@ const CustomerSupport = () => {
                                                         <CTableDataCell>{row.counseler}</CTableDataCell>
                                                         <CTableDataCell>{row.content}</CTableDataCell>
                                                         <CTableDataCell>{row.manager}</CTableDataCell>
+                                                        <CTableDataCell>
+                                                            <CButton color="dark" onClick={() => { setVisibleASTableConfirmModal(true); setSelectedRowResASTable(row) }}>
+                                                                확인
+                                                            </CButton>
+                                                        </CTableDataCell>
                                                     </CTableRow>
                                                 ))}
                                             </CTableBody>
                                         </CTable>
                                     </div>
-                                    {/* ///////////////////////// page1: AS 현황 검색 end //////////////////////////////////////////////////////////////////////////// */}
+
 
 
                                 </CModalBody>
@@ -677,35 +994,73 @@ const CustomerSupport = () => {
                             </CModal>
 
                             <CCol md={2}>
-                                <CFormLabel>첨부파일</CFormLabel>
+                                <CFormLabel>날짜별 상담</CFormLabel>
                                 <div className="d-flex align-items-center">
-                                    <CButton color="dark" type="button" onClick={handleUploadView}>파일 선택</CButton>
+                                    <CButton color="dark" type="button" onClick={handleConsultationsView}>상담내역 보기</CButton>
                                 </div>
                             </CCol>
-                            {/* ///////////////////////// page1: 첨부파일; file upload start //////////////////////////////////////////////////////////////////////////// */}
-
-                            <CModal visible={modalVisible} onClose={() => setModalVisible(false)}>
-                                <CModalHeader>
-                                    <CModalTitle>Upload CSV File</CModalTitle>
+                            <CModal visible={visibleConsultationsTable} onClose={() => setVisibleConsultationsTable(false)} size="xl">
+                                <CModalHeader onClose={() => setVisibleConsultationsTable(false)}>
+                                    <CModalTitle>날짜별 상담내역</CModalTitle>
                                 </CModalHeader>
                                 <CModalBody>
-                                    <CFormInput
-                                        type="file"
-                                        accept=".csv"
-                                        onChange={handleFileChange}
-                                    />
-                                    {error && <div className="text-danger">{error}</div>}
+                                    {/* Consultation Table; consultationsDateTable */}
+                                    <div style={{ height: '300px', overflowY: 'scroll' }}>
+                                        <CTable hover striped>
+                                            <CTableHead>
+                                                <CTableRow>
+                                                    <CTableHeaderCell style={{ width: '10px' }}></CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '100px' }}>상담구분</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '100px' }}>처리상태</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '50px' }}>상담원</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '50px' }}>구매자</CTableHeaderCell>
+                                                    <CTableHeaderCell style={{ width: '400px' }}>내용</CTableHeaderCell>
+                                                </CTableRow>
+                                            </CTableHead>
+                                            <CTableBody>
+                                                {consultationsDateTable.map((row) => (
+                                                    <CTableRow key={row.id}>
+                                                        <CTableDataCell>
+                                                            <CFormCheck
+                                                                type="radio"
+                                                                onChange={() => handleCheckboxChangeASTable(row)}
+                                                                checked={selectedRowASTable === row}
+                                                            />
+                                                        </CTableDataCell>
+                                                        <CTableDataCell>{row.counselSection}</CTableDataCell>
+                                                        <CTableDataCell>{row.counselResult}</CTableDataCell>
+                                                        <CTableDataCell>{row.counseler}</CTableDataCell>
+                                                        <CTableDataCell>{row.buyerName}</CTableDataCell>
+                                                        <CTableDataCell>{row.content}</CTableDataCell>
+                                                    </CTableRow>
+                                                ))}
+                                            </CTableBody>
+                                        </CTable>
+                                    </div>
+
+
+
                                 </CModalBody>
                                 <CModalFooter>
-                                    <CButton color="secondary" onClick={() => setModalVisible(false)}>
-                                        Close
-                                    </CButton>
-                                    <CButton color="primary" onClick={handleUpload} disabled={!selectedFile}>
-                                        Upload
-                                    </CButton>
+                                    <CButton color="secondary" onClick={() => setVisibleConsultationsTable(false)}>Close</CButton>
                                 </CModalFooter>
                             </CModal>
-                            {/* ///////////////////////// page1: 첨부파일; file upload end //////////////////////////////////////////////////////////////////////////// */}
+
+
+
+                            {/* Reconfirmation Modal */}
+                            <CModal visible={visibleASTableConfirmModal} onClose={() => setVisibleASTableConfirmModal(false)} size="sm">
+                                <CModalHeader onClose={() => setASTableVisibleConfirmModal(false)}>
+                                    <CModalTitle>확인</CModalTitle>
+                                </CModalHeader>
+                                <CModalBody>이 작업을 진행하시겠습니까?</CModalBody>
+                                <CModalFooter>
+                                    <CButton color="primary" onClick={handleASTableConfirm}>네</CButton>
+                                    <CButton color="secondary" onClick={handleASTableCancel}>아니요</CButton>
+                                </CModalFooter>
+                            </CModal>
+
+                            {/* ///////////////////////// page1: AS 현황 검색 end //////////////////////////////////////////////////////////////////////////// */}
 
 
                             {/* 구매인명 */}
@@ -730,18 +1085,18 @@ const CustomerSupport = () => {
                                     </div>
                                 </div>
                             </CCol>
-
-                            <CCol md={4}>
-                                <CFormLabel>주문서 저장 및 재고 파악</CFormLabel>
-                                <div className="d-flex align-items-center">
-                                    <CButton color="dark" type="button" onClick={handleASView}>TEST</CButton>
+                            {/* 조회 버튼 */}
+                            <CCol xs={2}>
+                                <div style={{ marginTop: '2rem' }}> {/* Adding space above the button */}
+                                    <CButton color="primary" type="submit" onClick={handleView}>조회</CButton>
                                 </div>
                             </CCol>
 
-                            {/* 조회 버튼 */}
-                            <CCol xs={12}>
+
+                            {/* <CCol xs={12}>
                                 <CButton color="primary" type="submit" onClick={handleView}>조회 </CButton>
-                            </CCol>
+                            </CCol> */}
+
                         </CForm>
                         {/* ///////////////////////// page1: 주문 검색 end //////////////////////////////////////////////////////////////////////////// */}
 
@@ -749,7 +1104,7 @@ const CustomerSupport = () => {
                         {/* ///////////////////////// page2: 결과 화면; tableData start //////////////////////////////////////////////////////////////////////////// */}
 
                         <div style={{ height: '300px', overflowY: 'scroll' }}>
-                            <table className="table table-striped">
+                            <table className="custom-table">
                                 <thead>
                                     <tr>
                                         <th> </th>
@@ -768,7 +1123,7 @@ const CustomerSupport = () => {
                                     {tableData.map((row, index) => (
                                         <tr
                                             key={index}
-                                            className={selectedRow === row ? "selected-row" : ""}
+                                            className={getRowClassConsultation(row.counselResult)}
                                         >
                                             <td>
                                                 <CFormCheck
@@ -985,68 +1340,130 @@ const CustomerSupport = () => {
                                 {/* ///////////////////////// page3: 주문서 상품정보 및 요구사항; selectedRow end //////////////////////////////////////////////////////////////////////////// */}
 
                                 {/* ///////////////////////// page4: 고객 상담 내역 등록하기; new consultation start //////////////////////////////////////////////////////////////////////////// */}
-                                <h4 className="custom-header-consultation">고객 상담 내역 등록하기</h4>
-                                <CForm>
-                                    <CRow className="mb-3">
-                                        <CCol style={{ width: '12.5%' }}>
-                                            <CFormLabel>상담구분</CFormLabel>
-                                            <Select
-                                                name="counselSection"
-                                                options={counselSection}
-                                                onChange={handleSelectChange_Consult}
-                                                isSearchable
-                                            />
-                                        </CCol>
-                                        <CCol style={{ width: '12.5%' }}>
-                                            <CFormLabel>처리결과</CFormLabel>
-                                            <Select
-                                                name="counselResult"
-                                                options={counselResult}
-                                                onChange={handleSelectChange_Consult}
-                                                isSearchable
-                                            />
-                                        </CCol>
-                                        <CCol md={3}>
-                                            <CFormLabel>상담시간</CFormLabel>
-                                            <CFormInput type="text" value={newConsultations.consultationTime || ''} readOnly />
-                                        </CCol>
-                                        <CCol md={3}>
-                                            <CFormLabel>완료시간</CFormLabel>
-                                            <CFormInput type="text" value={newConsultations.completionTime || ''} placeholder='등록시 자동으로 기재됩니다' readOnly />
-                                        </CCol>
-                                        <CCol style={{ width: '20.83%' }}>
-                                            <CFormLabel>상담원</CFormLabel>
-                                            <CFormInput type="text" value={newConsultations.counseler || ''} readOnly />
-                                        </CCol>
-                                    </CRow>
-                                    {/* ///////////////////////// page3: 고객 상담 내역 등록하기; new consultation start //////////////////////////////////////////////////////////////////////////// */}
+                                {!selectedRowConsult && (
+                                    <>
+                                        <h4 className="custom-header-consultation">고객 상담 내역 등록하기</h4>
+                                        <CForm>
+                                            <CRow className="mb-3">
+                                                <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>상담구분</CFormLabel>
+                                                    <Select
+                                                        name="counselSection"
+                                                        options={counselSection.slice(1)}
+                                                        onChange={handleSelectChange_Consult}
+                                                        value={newConsultations.counselSection || ""}
+                                                        isSearchable
+                                                    />
+                                                </CCol>
+                                                <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>처리결과</CFormLabel>
+                                                    <Select
+                                                        name="counselResult"
+                                                        options={counselResult.slice(1)}
+                                                        onChange={handleSelectChange_Consult}
+                                                        value={newConsultations.counselResult || ""}
+                                                        isSearchable
+                                                    />
+                                                </CCol>
+                                                <CCol md={3}>
+                                                    <CFormLabel>상담시간</CFormLabel>
+                                                    <CFormInput type="text" value={newConsultations.consultationTime || ''} readOnly />
+                                                </CCol>
+                                                <CCol md={3}>
+                                                    <CFormLabel>완료시간</CFormLabel>
+                                                    <CFormInput type="text" value={newConsultations.completionTime || ''} placeholder='등록시 자동으로 기재됩니다' readOnly />
+                                                </CCol>
+                                                <CCol style={{ width: '20.83%' }}>
+                                                    <CFormLabel>상담원</CFormLabel>
+                                                    <CFormInput type="text" value={newConsultations.counseler || ''} readOnly />
+                                                </CCol>
+                                            </CRow>
+                                            <CRow className="mb-3">
+                                                <CCol md={12}>
+                                                    <CFormLabel>상담내용</CFormLabel>
+                                                    <textarea
+                                                        name="content"
+                                                        placeholder="상담 내용을 입력하세요"
+                                                        value={newConsultations.content || ''}
+                                                        onChange={handleChange_Consult}
+                                                        style={{
+                                                            height: '100px', // Set a fixed height
+                                                            overflowY: 'auto', // Enable vertical scrolling
+                                                            width: '100%', // Ensure it takes full width
+                                                            border: '1px solid #ced4da', // Match CoreUI's input styling
+                                                            borderRadius: '0.25rem', // Match CoreUI's input styling
+                                                            padding: '0.375rem 0.75rem', // Match CoreUI's input styling
+                                                            resize: 'none', // Prevent resizing
+                                                        }}
+                                                    />
+                                                </CCol>
+                                            </CRow>
+                                            <CRow className="mb-3">
+                                                <CCol>
+                                                    <CButton color="primary" onClick={handleConsulation}>등록</CButton>
+                                                </CCol>
+                                            </CRow>
+                                        </CForm>
+                                    </>
+                                )}
+                                {/* ///////////////////////// page3: 고객 상담 내역 등록하기; new consultation end //////////////////////////////////////////////////////////////////////////// */}
+                                {/* ///////////////////////// page3: 고객 상담 내역 등록하기; edit consultation start //////////////////////////////////////////////////////////////////////////// */}
+                                {selectedRowConsult && (
+                                    <>
+                                        <h4 className="custom-header-consultation">고객 상담 내역 등록하기</h4>
+                                        <CForm>
+                                            <CRow className="mb-3">
+                                                <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>상담구분</CFormLabel>
+                                                    <CFormInput type="text" name="counselSection" value={selectedRowConsult.counselSection || ''} readOnly />
+                                                </CCol>
+                                                <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>처리결과</CFormLabel>
+                                                    <CFormInput type="text" name="counselResult" value={selectedRowConsult.counselResult || ''} readOnly />
+                                                </CCol>
+                                                <CCol md={3}>
+                                                    <CFormLabel>상담시간</CFormLabel>
+                                                    <CFormInput type="text" name="startDate" value={selectedRowConsult.startDate || ''} readOnly />
+                                                </CCol>
+                                                <CCol md={3}>
+                                                    <CFormLabel>완료시간</CFormLabel>
+                                                    <CFormInput type="text" name="endDate" value={selectedRowConsult.endDate || ''} readOnly />
+                                                </CCol>
+                                                <CCol style={{ width: '20.83%' }}>
+                                                    <CFormLabel>상담원</CFormLabel>
+                                                    <CFormInput type="text" name="counseler" value={selectedRowConsult.counseler || ''} readOnly />
+                                                </CCol>
+                                            </CRow>
+                                            <CRow className="mb-3">
+                                                <CCol md={12}>
+                                                    <CFormLabel>상담내용</CFormLabel>
+                                                    <textarea
+                                                        name="content"
+                                                        placeholder={selectedRowConsult.content || "상담 내용을 입력하세요"}
+                                                        onChange={handleChange_Consult}
+                                                        style={{
+                                                            height: '100px', // Set a fixed height
+                                                            overflowY: 'auto', // Enable vertical scrolling
+                                                            width: '100%', // Ensure it takes full width
+                                                            border: '1px solid #ced4da', // Match CoreUI's input styling
+                                                            borderRadius: '0.25rem', // Match CoreUI's input styling
+                                                            padding: '0.375rem 0.75rem', // Match CoreUI's input styling
+                                                            resize: 'none', // Prevent resizing
+                                                        }}
+                                                    />
+                                                </CCol>
+                                            </CRow>
+                                            <CRow className="mb-3">
+                                                <CCol>
+                                                    <CButton color="primary" onClick={async () => { handleSelectedRowConsult(selectedRowConsult) }} style={{ marginRight: '5px' }}>등록하기</CButton>
+                                                    <CButton color="primary" onClick={handleNewConsultation}>새로 작성하기</CButton>
+                                                </CCol>
+                                            </CRow>
+                                        </CForm>
+                                    </>
+                                )}
 
-                                    <CRow className="mb-3">
-                                        <CCol md={12}>
-                                            <CFormLabel>상담내용</CFormLabel>
-                                            <textarea
-                                                name="content"
-                                                placeholder="상담 내용을 입력하세요"
-                                                onChange={handleChange_Consult}
-                                                style={{
-                                                    height: '100px', // Set a fixed height
-                                                    overflowY: 'auto', // Enable vertical scrolling
-                                                    width: '100%', // Ensure it takes full width
-                                                    border: '1px solid #ced4da', // Match CoreUI's input styling
-                                                    borderRadius: '0.25rem', // Match CoreUI's input styling
-                                                    padding: '0.375rem 0.75rem', // Match CoreUI's input styling
-                                                    resize: 'none', // Prevent resizing
-                                                }}
-                                            />
-                                        </CCol>
-                                    </CRow>
-                                    <CRow className="mb-3">
-                                        <CCol>
-                                            <CButton color="primary" onClick={handleConsulation}>등록</CButton>
-                                        </CCol>
-                                    </CRow>
-                                </CForm>
-                                {/* ///////////////////////// page4: 고객 상담 내역 등록하기; new consultation end //////////////////////////////////////////////////////////////////////////// */}
+                                {/* ///////////////////////// page4: 고객 상담 내역 등록하기; edit consultation end //////////////////////////////////////////////////////////////////////////// */}
                                 {/* ///////////////////////// page4: 기존 상담내역; prev consultation start //////////////////////////////////////////////////////////////////////////// */}
                                 <h4 className="custom-header-consultation">기존 상담내역 (상담시간 기준 오름차순)</h4>
                                 <div style={{ height: '200px', overflowY: 'scroll' }}>
@@ -1055,7 +1472,7 @@ const CustomerSupport = () => {
                                             <tr>
                                                 <th> </th>
                                                 <th style={{ width: '8%' }}>상담구분</th>
-                                                <th style={{ width: '7%' }}>상태</th>
+                                                <th style={{ width: '7%' }}>처리상태</th>
                                                 <th style={{ width: '15%' }}>상담시간</th>
                                                 <th style={{ width: '15%' }}>완료시간</th>
                                                 <th style={{ width: '45%' }}>상담내용</th>
@@ -1069,7 +1486,7 @@ const CustomerSupport = () => {
                                                         <CFormCheck
                                                             type="radio"
                                                             onChange={() => handleCheckboxChange_Consult(row)}
-                                                            checked={selectedRow_Consult === row}
+                                                            checked={selectedRowConsult === row}
                                                         />
                                                     </td>
                                                     <td>{row.counselSection}</td>
@@ -1077,7 +1494,7 @@ const CustomerSupport = () => {
                                                     <td>{row.startDate}</td>
                                                     <td>{row.endDate}</td>
                                                     <td>{row.content}</td>
-                                                    <td>{row.inputer}</td>
+                                                    <td>{row.counseler}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1105,7 +1522,7 @@ const CustomerSupport = () => {
                                                         <CFormCheck
                                                             type="radio"
                                                             onChange={() => handleCheckboxChange_Consult(row)}
-                                                            checked={selectedRow_Consult === row}
+                                                            checked={selectedRowConsult === row}
                                                         />
                                                     </td>
                                                     <td>{row.consultationType}</td>

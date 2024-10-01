@@ -46,10 +46,10 @@ const RegisterProduct = () => {
 
   const fetchProducts = async (category) => {
     try {
-        const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
-        setProducts(response.data);
+      const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
+      setProducts(response.data);
     } catch (error) {
-        console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error);
     }
   };
 
@@ -85,6 +85,7 @@ const RegisterProduct = () => {
       try {
         await axios.post('http://localhost:8080/add-product', formData, {
           headers: { 'Content-Type': 'application/json' },
+          withCredentials: true
         });
         alert('Product registered successfully!');
       } catch (error) {
