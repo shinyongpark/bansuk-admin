@@ -119,32 +119,7 @@ const WidgetsDropdown = (props) => {
   };
 
   const getDateConsultTable = async (parsedCounselSection = null, parsedCounselResult = null) => {
-    const productDetails = parsedCounselResult ? {
-      startDate: '2024-09-19',
-      endDate: '2024-09-20',
-    } : {
-      startDate: '2024-08-19',
-      endDate: '2024-08-20',
-    };
-    try {
-      const response = await axios.post('https://bs-admin.com:443/customer-support/search-ConsultationsTable', productDetails, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const consultations = response.data.map(item => ({
-        id: item.uid,
-        startDate: item.reg_date.split('T')[0],
-        counseler: item.table === "c" ? item.counseler : item.manager,
-        counselResult: counselResult.length ? counselResult[Number(item.counsel_result)] : parsedCounselResult[Number(item.counsel_result)],
-        content: item.counsel_content,
-        buyerName: item.buyer_name || '',
-      }));
-      setConsultationsDateTable(consultations);
-    } catch (error) {
-      console.error('Error fetching ConsultationsTable data:', error);
-    }
-  };
-
-  const getTotalSale = async () => {
+    const productDetails = {};
     try {
       const response = await axios.post('https://bs-admin.com:443/customer-support/search-ConsultationsTable', productDetails, {
         headers: { 'Content-Type': 'application/json' },
@@ -290,7 +265,7 @@ const WidgetsDropdown = (props) => {
               </CDropdownToggle>
               <CDropdownMenu>
                 {/* <Link to="/sales/customer-support" className="dropdown-item"> 고객관리에서 자세히 보기 </Link> */}
-                <CDropdownItem onClick={getTotalSale}> AS 현황 새로고침 </CDropdownItem>
+                {/* <CDropdownItem onClick={getTotalSale}> AS 현황 새로고침 </CDropdownItem> */}
               </CDropdownMenu>
             </CDropdown>
           }
