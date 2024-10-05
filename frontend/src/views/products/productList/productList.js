@@ -27,7 +27,7 @@ const ProductsByCategory = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:80/get-categories');
+      const response = await axios.get('https://bs-admin.com:443/get-categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -36,7 +36,7 @@ const ProductsByCategory = () => {
 
   const fetchProducts = async (categoryId) => {
     try {
-      const response = await axios.get(`https://bs-admin.com:80/get-products?category=${categoryId}`);
+      const response = await axios.get(`https://bs-admin.com:443/get-products?category=${categoryId}`);
       // Filter products to include only those with stock available
       const filteredProducts = response.data.filter(product => product.stock !== 'N/A');
       setProducts(filteredProducts);

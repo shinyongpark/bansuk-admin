@@ -32,7 +32,7 @@ const ProductsByCategory = () => {
 
   const fetchTotalPrimeCost = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:80/get-total-prime-cost');
+      const response = await axios.get('https://bs-admin.com:443/get-total-prime-cost');
       setTotalPrimeCost(response.data.totalPrimeCost);
     } catch (error) {
       console.error('Error fetching total prime cost:', error);
@@ -41,7 +41,7 @@ const ProductsByCategory = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:80/get-categories');
+      const response = await axios.get('https://bs-admin.com:443/get-categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -50,7 +50,7 @@ const ProductsByCategory = () => {
 
   const fetchProducts = async (categoryId) => {
     try {
-      const response = await axios.get(`https://bs-admin.com:80/get-products?category=${categoryId}`);
+      const response = await axios.get(`https://bs-admin.com:443/get-products?category=${categoryId}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products for category:', categoryId, error);
@@ -86,7 +86,7 @@ const ProductsByCategory = () => {
       const newCost = parseFloat(updateProducts[id]).toFixed(0); // Keeping two decimals for currency values
 
       // Sending the updated cost to the server
-      const response = await axios.post('https://bs-admin.com:80/update-product-cost', {
+      const response = await axios.post('https://bs-admin.com:443/update-product-cost', {
         id,
         newPrimeCost: newCost
       }, {
