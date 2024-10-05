@@ -85,7 +85,7 @@ const WidgetsDropdown = (props) => {
   //////////////// helper functions /////////////////////////////////////////////////////////////////////////////////
   const getList = async () => {
     try {
-      const response = await axios.get('https://3.34.143.58:80/get-select-list');
+      const response = await axios.get('https://bs-admin.com:443/get-select-list');
       const parsedCounselSection = response.data.counsel_section.map((item) =>
         item === "" ? "미선택" : item
       );
@@ -104,7 +104,7 @@ const WidgetsDropdown = (props) => {
 
   const getASTable = async (parsedCounselSection = null, parsedCounselResult = null) => {
     try {
-      const response = await axios.get('https://3.34.143.58:80/customer-support/search-ASTable');
+      const response = await axios.get('https://bs-admin.com:443/customer-support/search-ASTable');
       const consultations = response.data.map(item => ({
         id: item.uid,
         startDate: item.reg_date.split('T')[0],
@@ -127,7 +127,7 @@ const WidgetsDropdown = (props) => {
       endDate: '2024-08-20',
     };
     try {
-      const response = await axios.post('https://3.34.143.58:80/customer-support/search-ConsultationsTable', productDetails, {
+      const response = await axios.post('https://bs-admin.com:443/customer-support/search-ConsultationsTable', productDetails, {
         headers: { 'Content-Type': 'application/json' },
       });
       const consultations = response.data.map(item => ({
@@ -146,7 +146,7 @@ const WidgetsDropdown = (props) => {
 
   const getTotalSale = async () => {
     try {
-      const response = await axios.post('https://3.34.143.58:80/customer-support/search-ConsultationsTable', productDetails, {
+      const response = await axios.post('https://bs-admin.com:443/customer-support/search-ConsultationsTable', productDetails, {
         headers: { 'Content-Type': 'application/json' },
       });
       const consultations = response.data.map(item => ({
