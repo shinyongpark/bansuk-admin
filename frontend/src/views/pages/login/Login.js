@@ -36,7 +36,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post('https://3.34.143.58:80/login/verify-user', userLogin, {
+      const response = await axios.post('http://3.34.143.58:80/login/verify-user', userLogin, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });
