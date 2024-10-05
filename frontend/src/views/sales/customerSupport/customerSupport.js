@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker'
 import Select from 'react-select';
 import axios from 'axios';
-import { getDataFromFile } from './parseCSV.js';
+import CheckOrder from './parseCSV';
 import {
     CButton,
     CCard,
@@ -37,16 +37,20 @@ const CustomerSupport = () => {
     const [counselSection, setCounselSection] = useState([]);
     const [counselResult, setCounselResult] = useState([]);
     const [staffNames, setStaffNames] = useState([]);
+    const [stockGood, setStockGood] = useState(null);
     const [loading, setLoading] = useState(false);
 
     // page 1 file upload - 첨부파일
     const [modalVisible, setModalVisible] = useState(false); //used for popup visibility
     const [selectedFile, setSelectedFile] = useState(null);
-    const [error, setError] = useState(''); // print error msg
+    const [errorMsg, setErrorMsg] = useState(''); // print error msg
     // page 1 test pass/fail
     const [isTestPassed, setIsTestPassed] = useState(false);
     const [orderData, setOrderData] = useState([]);
+    const [stockData, setStockData] = useState([]);
     const [uploadedFileName, setUploadedFileName] = useState('');
+    const [visibleTestCSV, setVisibleTestCSV] = useState(false);
+    const [errorTestMsg, setErrorTestMsg] = useState([]); // print error msg
 
 
     // page 1 AS 현황
@@ -112,6 +116,7 @@ const CustomerSupport = () => {
     // get the lists when open page
     useEffect(() => {
         fetchSelectList();
+        return;
     }, []);
 
     // when user selects a row in page2, get all consultatoins(상담내역) for page4
@@ -132,6 +137,7 @@ const CustomerSupport = () => {
 
             fetchConsultations();
         }
+        return;
     }, [selectedRow]); // Dependency on selectedRow
 
 
@@ -196,7 +202,7 @@ const CustomerSupport = () => {
     // change counsel data fields from DB to web
     const transformData_counsel = (response) => {
         const counselResult_m = ["상태 확인", "완료"];
-        console.log(response.data)
+        // console.log(response.data)
         return response.data.map(item => ({
             id: item.uid,  // Corresponding field from DB
             group_uid: item.group_uid || '',
@@ -210,6 +216,18 @@ const CustomerSupport = () => {
             buyerName: item.buyer_name || '',
         }));
     };
+
+    // change stockGood data fields from DB to web
+    const transformData_stock = (response) => {
+        // console.log(response.data)
+        return response.data.map(item => ({
+            goodAlias: item.good_alias,
+            goodName: item.good_name,
+            good_id: item.good_id,
+            goodExist: item.good_exist,
+            cateId: item.cate_id
+        }));
+    }
 
     //check if consultation is resolved
     function checkCounselResults(consultations) {
@@ -358,6 +376,7 @@ const CustomerSupport = () => {
         setSelectedCounselerASTable({
             [name]: selectedOption,
         });
+        return;
     };
 
     //when user selects the counseler it filters the consultationsAS
@@ -370,6 +389,7 @@ const CustomerSupport = () => {
 
             setConsultationsASTable(filteredConsultations);
         }
+        return;
     }, [selectedCounselerASTable]);
 
     // when the user hits "AS 현황 조회", shows pop up
@@ -386,6 +406,7 @@ const CustomerSupport = () => {
             return setConsultationsAS(consultations);
         } catch (error) {
             console.error('Error fetching data:', error);
+            return;
         }
     };
 
@@ -496,7 +517,8 @@ const CustomerSupport = () => {
     // Page1: 첨부파일: file upload //////////////////////////////////////////////////////////////////////////////////
     const handleUploadView = () => {
         setModalVisible(true);
-        setError(''); // Reset error message
+        setErrorMsg(''); // Reset error message
+        return;
     };
 
     const handleFileChange = (e) => {
@@ -504,13 +526,14 @@ const CustomerSupport = () => {
         if (file) {
             // Check if the file is a CSV
             if (file.type !== 'text/csv') {
-                setError('Please upload a valid CSV file.');
+                setErrorMsg('Please upload a valid CSV file.');
                 setSelectedFile(null); // Reset file input
             } else {
-                setError('');
+                setErrorMsg('');
                 setSelectedFile(file);
             }
         }
+        return;
     };
 
     const handleUpload = () => {
@@ -518,7 +541,7 @@ const CustomerSupport = () => {
             console.log('Uploading file:', selectedFile);
             setUploadedFileName(selectedFile.name)
             setModalVisible(false);
-            setIsTestPassed(false); //reset when uploading
+            setIsTestPassed(false); //reset after uploading
             return;
         }
     };
@@ -529,24 +552,69 @@ const CustomerSupport = () => {
         try {
             setLoading(true);
             setIsTestPassed(false); //reset when checking
-            if (!productDetails.orderCount || !Number(productDetails.orderCount)) {
+            if (!productDetails.orderCount || !Number(productDetails.orderCount) || productDetails.orderCount === 0) {
                 alert("총 주문수를 확인해주세요");
             } else if (!selectedFile) {
                 alert("첨부 파일을 선택해주세요");
             } else {
-                const response = await getDataFromFile(selectedFile, productDetails.orderCount, listArray.order_company);
+                let parsedStockGood = stockGood
+                if (!parsedStockGood) { //call only once if needed
+                    const getstockGood = await axios.get('http://localhost:8080/get-stock-good');
+                    parsedStockGood = transformData_stock(getstockGood)
+                    setStockGood(parsedStockGood);
+                }
+
+                //get orderid
+                const getstockGood = await axios.get('http://localhost:8080/get-next-orderid');
+                const order_uid = getstockGood.data;
+                // console.log(order_uid);
+                // 데이터 포멧 체크 + 비활성화 제품이 있으면 에러 발생: check_data() 두번째 파트
+                const checking = new CheckOrder(selectedFile, productDetails.orderCount, order_uid, listArray.order_company, parsedStockGood)
+                const response = await checking.getDataFromFile();
                 if (!response[0]) {
-                    alert(response[1]);
+                    throw new Error(response[1]);
+                }
+                // Check date against external_buyer_table: check_data() 첫번째 파트
+                // 제품을 확인하지 않고 날짜만 확인하는건가요..?
+                // create set of start_dates
+                const dateDict = {};
+                response[1].forEach((dataItem, idx) => {
+                    const startDateKey = dataItem.reg_date.toString();
+                    if (!dateDict[startDateKey]) {
+                        dateDict[startDateKey] = []; // Initialize an empty array for the date if it doesn't exist
+                    }
+                    dateDict[startDateKey].push(idx); // Push idx to the array for this start_date
+                });
+                const set_start_date = Object.keys(dateDict);
+
+                const checkDuplicate = await axios.post('http://localhost:8080/customer-support/check-duplicates',
+                    {
+                        set_start_date: set_start_date
+                    }, {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                // console.log("checkDuplicate.data, dateDict, response[3]", checkDuplicate.data, dateDict, response[3])
+                if (false && checkDuplicate.data.length) { //duplicates exist
+                    let errStr = "이중으로 등록될 제품들이 있습니다: \n";
+                    checkDuplicate.data.forEach(start_date => {
+                        dateDict[start_date].forEach(idx => {
+                            errStr += `${idx + 1} 번째 상품 ${response[1][idx].goods_name} [${response[1][idx].goods_num}] 가 ${start_date} 에 이미 등록되어 있습니다.\n`
+                            // 원래 response[1][idx].goods_name 대신 response[3][idx].name 인데 
+                            // checking.getDataFromFile()에서 this.groupingGoods의 결과가 this.data 개수와 같을 수 있을지 의문이라 바꿈.
+                        });
+                    });
+                    throw new Error(errStr);
                 } else {
-                    alert("모든 포멧과 총 주문수가 맞습니다");
+                    alert("모든 포멧과 총 주문수가 맞습니다. 해당 파일은 등록 가능합니다");
                     setOrderData(response[1])
+                    setStockData(response[3])
                     setIsTestPassed(true);
                 }
             }
-            setLoading(false);
-            return;
         } catch (error) {
-            alert(error);
+            setErrorTestMsg(error.message.split('\n'));
+            setVisibleTestCSV(true);
+        } finally {
             setLoading(false);
             return;
         }
@@ -556,14 +624,39 @@ const CustomerSupport = () => {
     const submitOrderCheck = async () => {
         try {
             setLoading(true);
-            console.log("submitOrderCheck orderData", orderData);
+            // console.log("submitOrderCheck orderData, stockData", orderData, stockData);
+            //check user auth!
+            const stockGood_dict = {}
+            for (const stockGoodItem of stockGood) {
+                stockGood_dict[stockGoodItem.good_id] = {
+                    goodAlias: stockGoodItem.goodAlias,
+                    goodName: stockGoodItem.goodName,
+                    goodExist: stockGoodItem.goodExist,
+                    cateId: stockGoodItem.cateId
+                };
+            }
+            // console.log("submitOrderCheck orderData, stockData, stockGood_dict", orderData, stockData, stockGood_dict)
+            const insertOrder = await axios.post('http://localhost:8080/customer-support/submitOrderCheck-external-stock',
+                {
+                    orderData: orderData,
+                    stockData: stockData,
+                    stockGood_dict: stockGood_dict,
+                }, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
 
 
-
+            alert("등록 됐습니다!")
             // reset after submit
             setLoading(false);
+            setProductDetails(prevDetails => ({
+                ...prevDetails,
+                orderCount: ''
+            }));
             setIsTestPassed(false);
             setSelectedFile(null);
+            setUploadedFileName('');
             return;
         } catch (error) {
             alert(error);
@@ -579,6 +672,7 @@ const CustomerSupport = () => {
             ...prevDetails,
             [e.target.name]: e.target.value || '',
         }));
+        return;
     };
     // used for Select inputs
     const handleSelectChange = (selectedOption, { name }) => {
@@ -586,6 +680,7 @@ const CustomerSupport = () => {
             ...productDetails,
             [name]: selectedOption,
         });
+        return;
     };
     // when user selects a row, affects page2, 3
     const handleCheckboxChange = async (row) => {
@@ -596,6 +691,7 @@ const CustomerSupport = () => {
         }));
         // console.log("handleCheckboxChange, row", row)
         setSelectedRow(selectedRow === row ? null : row)
+        return;
     };
 
     // when user hits 조회
@@ -616,6 +712,7 @@ const CustomerSupport = () => {
             console.error('Error fetching data:', error);
         } finally {
             setLoading(false); // Hide loading spinner
+            return;
         }
 
     };
@@ -625,11 +722,13 @@ const CustomerSupport = () => {
         const url = getDeliveryUrl(invoiceNo, regDate);
         setDeliveryUrl(url);
         setDeliveryVisible(true);
+        return;
     };
 
     const closeModal = () => {
         setDeliveryVisible(false);
         setDeliveryUrl(""); // Clear the URL when closing the modal
+        return;
     };
 
     // Page4: 고객 상담 내역: Consultation Table ///////////////////////////////////////////////////////////////////////
@@ -638,15 +737,22 @@ const CustomerSupport = () => {
             ...newConsultations,
             [e.target.name]: e.target.value,
         });
+        return;
     };
     const handleSelectChange_Consult = (selectedOption, { name }) => {
         setNewConsultations({
             ...newConsultations,
             [name]: selectedOption,
         });
+        return;
     };
     const handleCheckboxChange_Consult = (row) => {
         setSelectedRowConsult(row);
+        setNewConsultations({
+            consultationTime: getKrDate(),
+            counseler: sessionStorage.getItem('name')
+        });
+        return;
     };
 
     const handleNewConsultation = () => {
@@ -700,6 +806,7 @@ const CustomerSupport = () => {
             setLoading(true);
             newConsultations["id"] = selectedRowConsult.id
             newConsultations["completionTime"] = getKrDate()
+            newConsultations["external_uid"] = selectedRowConsult.external_uid;
             console.log("handleSelectedRowConsult", newConsultations);
             const response = await axios.post('http://localhost:8080/customer-support/edit-consultations', newConsultations, {
                 headers: { 'Content-Type': 'application/json' },
@@ -710,8 +817,13 @@ const CustomerSupport = () => {
                 headers: { 'Content-Type': 'application/json' },
             });
             const consultations_new = transformData_counsel(response_search);
-            setConsultations(consultations_new);
+            const checkedConsultations = checkCounselResults(consultations_new);
             setSelectedRowConsult(null)
+            setNewConsultations({
+                consultationTime: getKrDate(),
+                counseler: sessionStorage.getItem('name')
+            });
+            setConsultations(checkedConsultations);
             setLoading(false);
             return;
         } catch (error) {
@@ -779,7 +891,7 @@ const CustomerSupport = () => {
                                         <CFormLabel>총 주문수</CFormLabel>
                                     </div>
                                     <div style={{ flex: 1, marginRight: '0.5rem' }}>
-                                        <CFormInput name="orderCount" placeholder="0" onChange={handleChange} />
+                                        <CFormInput name="orderCount" placeholder="0" value={productDetails.orderCount || ''} onChange={handleChange} />
                                     </div>
 
                                     <div style={{ flex: 2, marginRight: '0rem' }}>
@@ -804,9 +916,9 @@ const CustomerSupport = () => {
                                 {/* Display the uploaded file name */}
                                 {uploadedFileName && <div style={{ marginTop: '1rem', fontWeight: 'bold' }}>Uploaded File: {uploadedFileName}</div>}
                             </div>
+
+
                         </CCol>
-
-
 
 
                         {/* ///////////////////////// page1: 첨부파일; file upload start //////////////////////////////////////////////////////////////////////////// */}
@@ -820,7 +932,7 @@ const CustomerSupport = () => {
                                     accept=".csv"
                                     onChange={handleFileChange}
                                 />
-                                {error && <div className="text-danger">{error}</div>}
+                                {errorMsg && <div className="text-danger">{errorMsg}</div>}
                             </CModalBody>
                             <CModalFooter>
                                 <CButton color="secondary" onClick={() => setModalVisible(false)}>
@@ -832,6 +944,24 @@ const CustomerSupport = () => {
                             </CModalFooter>
                         </CModal>
                         {/* ///////////////////////// page1: 첨부파일; file upload end //////////////////////////////////////////////////////////////////////////// */}
+
+                        {/* ///////////////////////// page1: 첨부파일 test 에러메세지 start; //////////////////////////////////////////////////////////////////////////// */}
+                        <CModal visible={visibleTestCSV} onClose={() => { setErrorTestMsg([]); setVisibleTestCSV(false) }}>
+                            <CModalHeader>
+                                <CModalTitle>제출하신 파일에 에러가 감지됐습니다</CModalTitle>
+                            </CModalHeader>
+                            <CModalBody>
+                                {errorTestMsg.map((message, index) => (
+                                    <li key={index}>{message}</li>
+                                ))}
+                            </CModalBody>
+                            <CModalFooter>
+                                <CButton color="secondary" onClick={() => { setErrorTestMsg([]); setVisibleTestCSV(false); }}>
+                                    Close
+                                </CButton>
+                            </CModalFooter>
+                        </CModal>
+                        {/* ///////////////////////// page1: 첨부파일 end 에러메세지 start; //////////////////////////////////////////////////////////////////////////// */}
 
 
                         <CForm className="row g-3" style={{ marginBottom: '1rem' }}>
@@ -1400,7 +1530,7 @@ const CustomerSupport = () => {
                                             </CRow>
                                             <CRow className="mb-3">
                                                 <CCol>
-                                                    <CButton color="primary" onClick={handleConsulation}>등록</CButton>
+                                                    <CButton color="primary" onClick={handleConsulation}>등록하기</CButton>
                                                 </CCol>
                                             </CRow>
                                         </CForm>
@@ -1421,6 +1551,29 @@ const CustomerSupport = () => {
                                                     <CFormLabel>처리결과</CFormLabel>
                                                     <CFormInput type="text" name="counselResult" value={selectedRowConsult.counselResult || ''} readOnly />
                                                 </CCol>
+
+                                                {/* <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>상담구분</CFormLabel>
+                                                    <Select
+                                                        name="counselSection"
+                                                        options={counselSection.slice(1)}
+                                                        onChange={handleSelectChange_Consult}
+                                                        placeholder={selectedRowConsult.counselSection}
+                                                        value={newConsultations.counselSection || ""}
+                                                        isSearchable
+                                                    />
+                                                </CCol>
+                                                <CCol style={{ width: '12.5%' }}>
+                                                    <CFormLabel>처리결과</CFormLabel>
+                                                    <Select
+                                                        name="counselResult"
+                                                        options={counselResult.slice(1)}
+                                                        onChange={handleSelectChange_Consult}
+                                                        placeholder={selectedRowConsult.counselResult}
+                                                        value={newConsultations.counselResult || ""}
+                                                        isSearchable
+                                                    />
+                                                </CCol> */}
                                                 <CCol md={3}>
                                                     <CFormLabel>상담시간</CFormLabel>
                                                     <CFormInput type="text" name="startDate" value={selectedRowConsult.startDate || ''} readOnly />
