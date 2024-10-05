@@ -65,6 +65,25 @@
     background-color: white !important;
 }
 
+.calendar {
+    width: 400px;
+    /* Set the width to 400 pixels (or any size you prefer) */
+    height: 400px;
+    /* Set the height to 400 pixels */
+    display: flex;
+    /* Centering the calendar */
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    /* Optional padding around the calendar */
+}
+
+.react-calendar {
+    width: 100%;
+    /* Makes the calendar fill the container */
+    height: 100%;
+}
+
 // .table-container {
 //     height: 200px;  /* Limit the overall table container height */
 //     overflow-y: auto;  /* Make the container scrollable */

@@ -36,11 +36,11 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post('http://localhost:8080/login/verify-user', userLogin, {
+      const response = await axios.post('https://3.34.143.58:80/login/verify-user', userLogin, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });
-      sessionStorage.setItem('tokenExpiry', Date.now() + 3600 * 1000) // Token expire in 1 hour
+      sessionStorage.setItem('tokenExpiry', Date.now() + 3600 * 4000) // Token expire in 4 hour
       sessionStorage.setItem('authUser', response.data.authUser)
       sessionStorage.setItem('name', response.data.name)
 

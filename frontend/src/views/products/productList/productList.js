@@ -27,7 +27,7 @@ const ProductsByCategory = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/get-categories');
+      const response = await axios.get('https://3.34.143.58:80/get-categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -36,7 +36,7 @@ const ProductsByCategory = () => {
 
   const fetchProducts = async (categoryId) => {
     try {
-      const response = await axios.get(`http://localhost:8080/get-products?category=${categoryId}`);
+      const response = await axios.get(`https://3.34.143.58:80/get-products?category=${categoryId}`);
       // Filter products to include only those with stock available
       const filteredProducts = response.data.filter(product => product.stock !== 'N/A');
       setProducts(filteredProducts);

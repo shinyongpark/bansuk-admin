@@ -47,7 +47,7 @@ const EditProduct = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/get-categories');
+      const response = await axios.get('https://3.34.143.58:80/get-categories');
       console.log('Fetched categories:', response.data);
       setCategories(response.data);
     } catch (error) {
@@ -57,7 +57,7 @@ const EditProduct = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const response = await axios.get(`http://localhost:8080/get-products?category=${category}`);
+      const response = await axios.get(`https://3.34.143.58:80/get-products?category=${category}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -92,7 +92,7 @@ const EditProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8080/edit-products', productDetails, {
+      await axios.post('https://3.34.143.58:80/edit-products', productDetails, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });
