@@ -124,7 +124,7 @@ const CustomerSupport = () => {
         if (selectedRow) {
             // console.log("customerService selectedRow: ", selectedRow);
             const fetchConsultations = async () => {
-                const response = await axios.post('http://3.34.143.58:80/customer-support/search-consultations', selectedRow, {
+                const response = await axios.post('https://bs-admin.com:80/customer-support/search-consultations', selectedRow, {
                     headers: { 'Content-Type': 'application/json' },
                 });
                 const consultations = transformData_counsel(response);
@@ -153,7 +153,7 @@ const CustomerSupport = () => {
     const fetchSelectList = async () => {
         try {
             setLoading(true);
-            const response = await axios.get('http://3.34.143.58:80/get-select-list');
+            const response = await axios.get('https://bs-admin.com:80/get-select-list');
             // console.log("customerSupport", typeof response, response)
             const parsedCompanies = response.data.order_company.map(item => ({
                 value: item,
@@ -398,7 +398,7 @@ const CustomerSupport = () => {
         setVisibleASTable(!visibleASTable);
         try {
             //get all AS data; when user changes the staffNames list then fliter
-            const response = await axios.get('http://3.34.143.58:80/customer-support/search-ASTable');
+            const response = await axios.get('https://bs-admin.com:80/customer-support/search-ASTable');
             const consultations = transformData_manager(response);
 
             // Update the state with the transformed data
@@ -419,7 +419,7 @@ const CustomerSupport = () => {
             setSelectedRow(foundSelected);
         } else {
             console.log(row);
-            const response = await axios.post('http://3.34.143.58:80/customer-support/search-ASTable/consultations', row, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/search-ASTable/consultations', row, {
                 headers: { 'Content-Type': 'application/json' },
             });
             const transformedData = transformData_external(response);
@@ -436,7 +436,7 @@ const CustomerSupport = () => {
         console.log('Proceed with action for:', selectedRowResASTable);
         // set proceed = 1: resolved = 반품 완료
         try {
-            const response = await axios.post('http://3.34.143.58:80/customer-support/search-ASTable/resolved', selectedRowResASTable, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/search-ASTable/resolved', selectedRowResASTable, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
             });
@@ -448,7 +448,7 @@ const CustomerSupport = () => {
         // reload AS Table
         try {
             //get all AS data; when user changes the staffNames list then fliter
-            const response = await axios.get('http://3.34.143.58:80/customer-support/search-ASTable');
+            const response = await axios.get('https://bs-admin.com:80/customer-support/search-ASTable');
             const consultations = transformData_manager(response);
 
             // Update the state with the transformed data
@@ -476,7 +476,7 @@ const CustomerSupport = () => {
         setVisibleConsultationsTable(!visibleConsultationsTable);
         try {
             //get all consultation data
-            const response = await axios.post('http://3.34.143.58:80/customer-support/search-ConsultationsTable', productDetails, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/search-ConsultationsTable', productDetails, {
                 headers: { 'Content-Type': 'application/json' }
             });
 
@@ -502,7 +502,7 @@ const CustomerSupport = () => {
             setSelectedRow(foundSelected);
         } else {
             console.log(row);
-            const response = await axios.post('http://3.34.143.58:80/customer-support/search-ASTable/consultations', row, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/search-ASTable/consultations', row, {
                 headers: { 'Content-Type': 'application/json' },
             });
             const transformedData = transformData_external(response);
@@ -559,13 +559,13 @@ const CustomerSupport = () => {
             } else {
                 let parsedStockGood = stockGood
                 if (!parsedStockGood) { //call only once if needed
-                    const getstockGood = await axios.get('http://3.34.143.58:80/get-stock-good');
+                    const getstockGood = await axios.get('https://bs-admin.com:80/get-stock-good');
                     parsedStockGood = transformData_stock(getstockGood)
                     setStockGood(parsedStockGood);
                 }
 
                 //get orderid
-                const getstockGood = await axios.get('http://3.34.143.58:80/get-next-orderid');
+                const getstockGood = await axios.get('https://bs-admin.com:80/get-next-orderid');
                 const order_uid = getstockGood.data;
                 // console.log(order_uid);
                 // 데이터 포멧 체크 + 비활성화 제품이 있으면 에러 발생: check_data() 두번째 파트
@@ -587,7 +587,7 @@ const CustomerSupport = () => {
                 });
                 const set_start_date = Object.keys(dateDict);
 
-                const checkDuplicate = await axios.post('http://3.34.143.58:80/customer-support/check-duplicates',
+                const checkDuplicate = await axios.post('https://bs-admin.com:80/customer-support/check-duplicates',
                     {
                         set_start_date: set_start_date
                     }, {
@@ -636,7 +636,7 @@ const CustomerSupport = () => {
                 };
             }
             // console.log("submitOrderCheck orderData, stockData, stockGood_dict", orderData, stockData, stockGood_dict)
-            const insertOrder = await axios.post('http://3.34.143.58:80/customer-support/submitOrderCheck-external-stock',
+            const insertOrder = await axios.post('https://bs-admin.com:80/customer-support/submitOrderCheck-external-stock',
                 {
                     orderData: orderData,
                     stockData: stockData,
@@ -700,7 +700,7 @@ const CustomerSupport = () => {
         setLoading(true);
         try {
             // console.log("customerSupport", productDetails)
-            const response = await axios.post('http://3.34.143.58:80/customer-support/search', productDetails, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/search', productDetails, {
                 headers: { 'Content-Type': 'application/json' },
             });
             const transformedData = transformData_external(response)
@@ -774,12 +774,12 @@ const CustomerSupport = () => {
         newConsultations["group_uid"] = selectedRow.group_uid;
         newConsultations["external_uid"] = selectedRow.uid;
         try {
-            const response = await axios.post('http://3.34.143.58:80/customer-support/submit-consultations', newConsultations, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/submit-consultations', newConsultations, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
             });
             //update consultations in page 4
-            const response_search = await axios.post('http://3.34.143.58:80/customer-support/search-consultations', selectedRow, {
+            const response_search = await axios.post('https://bs-admin.com:80/customer-support/search-consultations', selectedRow, {
                 headers: { 'Content-Type': 'application/json' },
             });
             const consultations_new = transformData_counsel(response_search);
@@ -808,12 +808,12 @@ const CustomerSupport = () => {
             newConsultations["completionTime"] = getKrDate()
             newConsultations["external_uid"] = selectedRowConsult.external_uid;
             console.log("handleSelectedRowConsult", newConsultations);
-            const response = await axios.post('http://3.34.143.58:80/customer-support/edit-consultations', newConsultations, {
+            const response = await axios.post('https://bs-admin.com:80/customer-support/edit-consultations', newConsultations, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
             });
             //update consultations in page 4
-            const response_search = await axios.post('http://3.34.143.58:80/customer-support/search-consultations', selectedRow, {
+            const response_search = await axios.post('https://bs-admin.com:80/customer-support/search-consultations', selectedRow, {
                 headers: { 'Content-Type': 'application/json' },
             });
             const consultations_new = transformData_counsel(response_search);

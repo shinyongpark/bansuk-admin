@@ -574,9 +574,9 @@ app.post('/login/verify-user', async (req, res) => {
       });
 
       // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
-      res.cookie('token', secretToken, { httpOnly: true, secure: false, sameSite: 'Strict' }); //change secure to true when using https
-      res.cookie('authUser', authUser, { httpOnly: true, secure: false, sameSite: 'Strict' }); //change secure to true when using https
-      res.cookie('name', member.member_name, { httpOnly: true, secure: false, sameSite: 'Strict' }); //change secure to true when using https
+      res.cookie('token', secretToken, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
+      res.cookie('authUser', authUser, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
+      res.cookie('name', member.member_name, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
       return res.status(201).json({ message: 'welcome!', authUser: authUser, name: member.member_name });
     }
     return res.status(404).send({ error: 'Login failed' });

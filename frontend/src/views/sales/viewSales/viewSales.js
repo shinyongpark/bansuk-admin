@@ -19,7 +19,7 @@ const SalesData = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://3.34.143.58:80/get-categories');
+      const response = await axios.get('https://bs-admin.com:80/get-categories');
       setCategories(response.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -35,7 +35,7 @@ const SalesData = () => {
       return;
     }
     try {
-      const response = await axios.get(`http://3.34.143.58:80/get-sales-data`, { params: { year, month, category } });
+      const response = await axios.get('https://bs-admin.com:80/get-sales-data', { params: { year, month, category } });
       setSalesData(response.data || []);
       setDaysInMonth(new Date(year, month, 0).getDate());
       setVisibleTable(true);
