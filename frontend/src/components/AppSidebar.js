@@ -39,7 +39,7 @@ const AppSidebar = () => {
         <CSidebarBrand href="/">
           {/* <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
           <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} /> */}
-          <b style="text-align: center;">반석스포츠 관리자</b>
+          <b>반석스포츠 관리자</b>
         </CSidebarBrand>
         <CCloseButton
           className="d-lg-none"
