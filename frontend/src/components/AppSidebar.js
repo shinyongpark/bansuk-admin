@@ -39,7 +39,7 @@ const AppSidebar = () => {
         <CSidebarBrand href="/">
           {/* <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
           <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} /> */}
-          <img src='src/assets/images/bslogo.png' height='30px' width='30px'></img> Bansuk Sports Admin Tool 
+          <a>반석스포츠 관리자</a>
         </CSidebarBrand>
         <CCloseButton
           className="d-lg-none"
