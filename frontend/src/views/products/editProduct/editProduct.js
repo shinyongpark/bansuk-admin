@@ -47,7 +47,7 @@ const EditProduct = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:443/get-categories');
+      const response = await axios.get('/get-categories');
       console.log('Fetched categories:', response.data);
       setCategories(response.data);
     } catch (error) {
@@ -57,7 +57,7 @@ const EditProduct = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const response = await axios.get(`https://bs-admin.com:443/get-products?category=${category}`);
+      const response = await axios.get(`/get-products?category=${category}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -92,7 +92,7 @@ const EditProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('https://bs-admin.com:443/edit-products', productDetails, {
+      await axios.post('/edit-products', productDetails, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });

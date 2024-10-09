@@ -49,7 +49,7 @@ const Register = () => {
 
     //post userinfo
     try {
-      const response = await axios.post('https://bs-admin.com:443/register/userInfo', userInfo, {
+      const response = await axios.post('/register/userInfo', userInfo, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true
       });

@@ -41,7 +41,7 @@ const EditStock = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('https://3.34.143.58:80/get-categories');
+      const response = await axios.get('/get-categories');
       console.log('Fetched categories:', response.data);
       setCategories(response.data);
     } catch (error) {
@@ -51,7 +51,7 @@ const EditStock = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const response = await axios.get(`https://3.34.143.58:80/get-products?category=${category}`);
+      const response = await axios.get('/get-products?category=${category}');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -72,8 +72,8 @@ const EditStock = () => {
     e.preventDefault();
     const requestBody = JSON.stringify(formData);
     const url = formData.transactionType === 'incoming' ?
-      'https://3.34.143.58:80/add-incoming-goods' :
-      'https://3.34.143.58:80/add-outgoing-goods';
+      '/add-incoming-goods' :
+      '/add-outgoing-goods';
 
     try {
       const response = await axios.post(url, requestBody, {

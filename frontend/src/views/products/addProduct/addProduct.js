@@ -37,7 +37,7 @@ const RegisterProduct = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:443/get-categories');
+      const response = await axios.get('/get-categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -46,7 +46,7 @@ const RegisterProduct = () => {
 
   const fetchProducts = async (category) => {
     try {
-      const response = await axios.get(`https://bs-admin.com:443/get-products?category=${category}`);
+      const response = await axios.get(`/get-products?category=${category}`);
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -83,7 +83,7 @@ const RegisterProduct = () => {
     e.preventDefault();
     if (!errors.productCode) {
       try {
-        await axios.post('https://bs-admin.com:443/add-product', formData, {
+        await axios.post('/add-product', formData, {
           headers: { 'Content-Type': 'application/json' },
           withCredentials: true
         });
