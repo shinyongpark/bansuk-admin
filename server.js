@@ -968,6 +968,74 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
 });
 
 
+app.post('/customer-support/delete-consultations', async (req, res) => {
+  try {
+    // verify user
+    console.log("delete-consultations", req.body)
+    const verified = verify_user(req.cookies, false)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
+    }
+
+    const kr_time = getKrDate();
+    //refer to admin_counsel_content2.php > mode=delete.
+    //fixed the problem: when the deleted consultation is the last one, the code didn't update the external_buyer_table
+    //query all data from counsel_table that match external_uid
+    const c_table = await db.collection('counsel_table').find({
+      external_uid: req.body.external_uid
+    }).sort({ reg_date: 1 }).toArray();
+    const matchingIndex = c_table.findIndex(item => (item.counsel_result === req.body.counselResult && item.uid === req.body.id));
+    if (matchingIndex === -1) {
+      return res.status(404).send("Matching counsel result not found.");
+    }
+
+    //if it's the only one update to default
+    if (c_table.length === 1) {
+      const e_table = await db.collection('external_buyer_table').updateOne(
+        { uid: req.body.external_uid },
+        {
+          $set: {
+            counsel_uid: '',
+            counsel_result: '',
+            mod_date: kr_time
+          }
+        }
+      );
+      if (!e_table.acknowledged) {
+        return res.status(500).send("Update operation failed.");
+      }
+
+      // if it's the last one but not the only one, update external_buyer_table to contain the previous counsel_result
+    } else if (matchingIndex === c_table.length - 1) {
+      const previousCounsel = c_table[matchingIndex - 1]; // Get the previous counsel result
+      const e_table = await db.collection('external_buyer_table').updateOne(
+        { uid: req.body.external_uid },
+        {
+          $set: {
+            counsel_uid: previousCounsel.uid,
+            counsel_result: previousCounsel.counsel_result,
+            mod_date: kr_time
+          }
+        }
+      );
+      if (!e_table.acknowledged) {
+        return res.status(500).send("Update operation failed.");
+      }
+    }
+
+    //delete the consultation
+    const del_counsel = await db.collection('counsel_table').deleteOne({ uid: req.body.id });
+    if (del_counsel.deletedCount !== 1) {
+      return res.status(500).send("Delete operation failed.");
+    }
+
+    return res.json([true]);
+  } catch (error) {
+    console.error('Failed to fetch customer-support-searchASTable-edit-consultations:', error);
+    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
 app.post('/customer-support/edit-consultations', async (req, res) => {
   try {
     // console.log("server, customer-support/edit-consultations req.body", req.body)

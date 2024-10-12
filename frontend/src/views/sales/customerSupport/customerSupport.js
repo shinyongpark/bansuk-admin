@@ -78,6 +78,7 @@ const CustomerSupport = () => {
     const [consultations, setConsultations] = useState([]);
     const [newConsultations, setNewConsultations] = useState([]); // when user sends a new consultation
     const [selectedRowConsult, setSelectedRowConsult] = useState(null); // when user selects the consultation
+    const [visibleConsultConfirmModal, setVisibleConsultConfirmModal] = useState(false); // Confirmation Modal visibility state
 
 
 
@@ -807,7 +808,7 @@ const CustomerSupport = () => {
             newConsultations["id"] = selectedRowConsult.id
             newConsultations["completionTime"] = getKrDate()
             newConsultations["external_uid"] = selectedRowConsult.external_uid;
-            console.log("handleSelectedRowConsult", newConsultations);
+            // console.log("handleSelectedRowConsult", newConsultations);
             const response = await axios.post('/customer-support/edit-consultations', newConsultations, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
@@ -833,6 +834,49 @@ const CustomerSupport = () => {
             return;
         }
     }
+
+    const handleConsultConfirm = async () => {
+        console.log('Proceed with action for delete:', selectedRowConsult);
+        setLoading(true);
+        try {
+            const response = await axios.post('/customer-support/delete-consultations', selectedRowConsult, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+        } catch (error) {
+            console.error('Error deleting data:', error);
+            setLoading(false);
+            setVisibleConsultConfirmModal(false);
+            return;
+        }
+
+        // reload consultation Table in page4
+        try {
+            const response_search = await axios.post('/customer-support/search-consultations', selectedRow, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const consultations_new = transformData_counsel(response_search);
+            const checkedConsultations = checkCounselResults(consultations_new);
+            setSelectedRowConsult(null)
+            setNewConsultations({
+                consultationTime: getKrDate(),
+                counseler: sessionStorage.getItem('name')
+            });
+            setConsultations(checkedConsultations);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+            setVisibleConsultConfirmModal(false);
+            return;
+        }
+
+    };
+
+    const handleConsultCancel = () => {
+        setVisibleConsultConfirmModal(false);
+        return;
+    };
 
     // change color coding for page 4 based on counsel_result
     // if want to change color or add new go to frontend/src/scss/_custom.scss
@@ -1609,10 +1653,22 @@ const CustomerSupport = () => {
                                             <CRow className="mb-3">
                                                 <CCol>
                                                     <CButton color="primary" onClick={async () => { handleSelectedRowConsult(selectedRowConsult) }} style={{ marginRight: '5px' }}>등록하기</CButton>
+                                                    <CButton color="primary" onClick={async () => { setVisibleConsultConfirmModal(true) }} style={{ marginRight: '5px' }}>삭제하기</CButton>
                                                     <CButton color="primary" onClick={handleNewConsultation}>새로 작성하기</CButton>
                                                 </CCol>
                                             </CRow>
                                         </CForm>
+
+                                        <CModal visible={visibleConsultConfirmModal} onClose={() => setVisibleConsultConfirmModal(false)} size="sm">
+                                            <CModalHeader onClose={() => setVisibleConsultConfirmModal(false)}>
+                                                <CModalTitle>확인</CModalTitle>
+                                            </CModalHeader>
+                                            <CModalBody>선택하신 상담내역을 삭제하시겠습니까?</CModalBody>
+                                            <CModalFooter>
+                                                <CButton color="primary" onClick={handleConsultConfirm}>네</CButton>
+                                                <CButton color="secondary" onClick={handleConsultCancel}>아니요</CButton>
+                                            </CModalFooter>
+                                        </CModal>
                                     </>
                                 )}
 
