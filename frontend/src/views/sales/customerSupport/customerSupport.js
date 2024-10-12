@@ -36,6 +36,7 @@ const CustomerSupport = () => {
     const [listArray, setListArray] = useState([]);
     const [counselSection, setCounselSection] = useState([]);
     const [counselResult, setCounselResult] = useState([]);
+    const [counselResultRev, setCounselResultRev] = useState({});
     const [staffNames, setStaffNames] = useState([]);
     const [stockGood, setStockGood] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -138,6 +139,7 @@ const CustomerSupport = () => {
 
             fetchConsultations();
         }
+        setSelectedRowConsult(null);
         return;
     }, [selectedRow]); // Dependency on selectedRow
 
@@ -173,6 +175,12 @@ const CustomerSupport = () => {
                 label: item === "" ? "미선택" : item
             }))
             setCounselResult(parsedCounselResult);
+
+            const parsedCounselResultRev = parsedCounselResult.reduce((acc, curr) => {
+                acc[curr.label] = curr.value;
+                return acc;
+            }, {});
+            setCounselResultRev(parsedCounselResultRev);
 
             const parsedStaffNames = response.data.staff_name.map(item => ({
                 value: item === "모두" ? "" : item,
@@ -836,6 +844,7 @@ const CustomerSupport = () => {
     }
 
     const handleConsultConfirm = async () => {
+        selectedRowConsult.counselResult = counselResultRev[selectedRowConsult.counselResult];
         console.log('Proceed with action for delete:', selectedRowConsult);
         setLoading(true);
         try {
