@@ -888,7 +888,7 @@ const CustomerSupport = () => {
                 return 'in-progress-row';
             case '처리완료':
                 return 'other';
-            default: //처리완료
+            default:
                 return 'return-row'; //unknown type??
         }
     };
@@ -1255,11 +1255,6 @@ const CustomerSupport = () => {
                                     <CButton color="primary" type="submit" onClick={handleView}>조회</CButton>
                                 </div>
                             </CCol>
-
-
-                            {/* <CCol xs={12}>
-                                <CButton color="primary" type="submit" onClick={handleView}>조회 </CButton>
-                            </CCol> */}
 
                         </CForm>
                         {/* ///////////////////////// page1: 주문 검색 end //////////////////////////////////////////////////////////////////////////// */}
@@ -1700,42 +1695,6 @@ const CustomerSupport = () => {
                                     </table>
                                 </div>
                                 {/* ///////////////////////// page4: 기존 상담내역; prev consultation end //////////////////////////////////////////////////////////////////////////// */}
-
-                                {/* <div className="table-container">
-                                    <table className="custom-table">
-                                        <thead>
-                                            <tr>
-                                                <th style={{ width: '4%' }}>체크</th>
-                                                <th style={{ width: '8%' }}>상담구분</th>
-                                                <th style={{ width: '8%' }}>상태</th>
-                                                <th style={{ width: '10%' }}>상담시간</th>
-                                                <th style={{ width: '10%' }}>완료시간</th>
-                                                <th style={{ width: '50%' }}>상담내용</th>
-                                                <th style={{ width: '10%' }}>상담원</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {consultations.map((row, index) => (
-                                                <tr key={index} className={getRowClassConsultation(row.result)}>
-                                                    <td>
-                                                        <CFormCheck
-                                                            type="radio"
-                                                            onChange={() => handleCheckboxChange_Consult(row)}
-                                                            checked={selectedRowConsult === row}
-                                                        />
-                                                    </td>
-                                                    <td>{row.consultationType}</td>
-                                                    <td>{row.result}</td>
-                                                    <td>{row.consultationTime}</td>
-                                                    <td>{row.completionTime}</td>
-                                                    <td>{row.content}</td>
-                                                    <td>{row.consultant}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div> */}
-
                             </div>
                         )}
                     </CCardBody>
