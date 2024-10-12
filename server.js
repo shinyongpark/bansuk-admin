@@ -34,6 +34,48 @@ app.use(cors({
   credentials: true,
 }));
 
+
+// helper functions & global vars //////////////////////////////////////////////////////////////////////
+const secretKey = process.env.JWT_SECRET_KEY
+const saltRounds = Number(process.env.SALT);
+
+const getKrDate = (input_time = null) => {
+  // if new Date format and in Kr time zone do nothing
+  if (input_time instanceof Date && input_time.getTimezoneOffset() === -540) {
+    return new Date(input_time);
+  }
+  const kr_time_diff = 9 * 60 * 60 * 1000;
+  const utc = input_time ? new Date(input_time).getTime() : Date.now();
+  const kr_curr = new Date(utc + kr_time_diff);
+  return kr_curr;
+}
+
+// convert utc or Date format to Date format
+const convertDate = (time) => {
+  return time instanceof Date ? time : new Date(time * 1000)
+}
+
+//strict=true when only 관리자 is authorized otherwise any staff is authorized
+const verify_user = (cookies, strict) => {
+  try {
+    const token = cookies.token
+    jwt.verify(token, secretKey);
+    const decoded = jwt.decode(token);
+    if (strict && decoded.authUser !== "true") {
+      return false;
+    }
+    // always verify name
+    if (decoded.name !== cookies.name) {
+      return false
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// helper functions end //////////////////////////////////////////////////////////////////////////////////////////
+
 app.get('/get-categories', async (req, res) => {
   // console.log('get category api reached.');
   try {
@@ -99,7 +141,7 @@ app.get('/get-products', async (req, res) => {
       if (recentIncoming.length > 0) {
         const timestamp = parseInt(recentIncoming[0].date);
         if (!isNaN(timestamp)) {
-          recentIncomingDate = new Date(timestamp * 1000).toISOString().split('T')[0];
+          recentIncomingDate = convertDate(timestamp).toISOString().split('T')[0];
         }
         recentIncomingQuantity = recentIncoming[0].stocks || '-';
       }
@@ -181,8 +223,8 @@ app.post('/add-incoming-goods', async (req, res) => {
     const nextUID = await getNextUID('incoming_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
 
-    // Convert ISO 8601 date string to Unix timestamp
-    const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
+    // Convert ISO 8601 date string to korean time
+    const dateTimestamp = getKrDate(date);
 
     const newRecord = {
       uid: nextUID.toString(),
@@ -193,7 +235,7 @@ app.post('/add-incoming-goods', async (req, res) => {
       stocks,
       warehouse: '반석',
       comment,
-      date: dateTimestamp.toString(),  // Store the date as a Unix timestamp
+      date: dateTimestamp,
       state: 'in',
       good_class: '0',
       good_exist: 'y',
@@ -225,7 +267,7 @@ app.post('/add-outgoing-goods', async (req, res) => {
 
     const nextUID = await getNextUID('outgoing_goods');
     const { t_type, cate_id, good_cate, code, good_name, stocks, comment, date } = req.body;
-    const dateTimestamp = new Date(date).getTime() / 1000;  // Convert milliseconds to seconds
+    const dateTimestamp = getKrDate(date);
 
     const newRecord = {
       uid: nextUID.toString(),
@@ -237,7 +279,7 @@ app.post('/add-outgoing-goods', async (req, res) => {
       stocks,
       warehouse: '반석',
       comment,
-      date: dateTimestamp.toString(),
+      date: dateTimestamp,
       category: '00000000',
       good_class: '0',
       good_exist: 'y',
@@ -349,7 +391,7 @@ app.post('/add-product', async (req, res) => {
       good_alias: good_alias,
       good_exist: 'y',
       comment: description,
-      reg_date: new Date(),
+      reg_date: getKrDate(),
       sale_price: '',
       free_sale_price: '',
       stock_kind: importType,
@@ -525,7 +567,6 @@ app.get('/get-sales-data', async (req, res) => {
       stock: salesMap[product.good_id] ? salesMap[product.good_id].stock : 'N/A'
     }));
 
-    // console.log(finalData[0].productName, finalData[0].dailySales, finalData[0].stock);
     res.json(finalData);
   } catch (error) {
     console.error('Failed to fetch sales data:', error);
@@ -533,38 +574,18 @@ app.get('/get-sales-data', async (req, res) => {
   }
 });
 
-
-const getKrDate = (input_time = null) => {
-  // if new Date format and in Kr time zone do nothing
-  if (input_time instanceof Date && input_time.getTimezoneOffset() === -540) {
-    return new Date(input_time);
-  }
-  const kr_time_diff = 9 * 60 * 60 * 1000;
-  const utc = input_time ? new Date(input_time).getTime() : Date.now();
-  const kr_curr = new Date(utc + kr_time_diff);
-  return kr_curr;
-}
-
-// convert utc or Date format to Date format
-const convertDate = (time) => {
-  return time instanceof Date ? time : new Date(time * 1000)
-}
-
-const secretKey = process.env.JWT_SECRET_KEY
-const saltRounds = Number(process.env.SALT);
 app.post('/login/verify-user', async (req, res) => {
   const { username, password } = req.body;
   try {
     // search from db
     const member = await db.collection('members').findOne({ member_id: username });
     const match = await bcrypt.compare(password, member.member_pass);
-    // console.log("serverjs", member, match)
 
     if (match) {
       const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
       const authUser = process.env.AUTH_USER.split(',').includes(member.member_id).toString();
       const secretToken = jwt.sign({ userId: member.member_id, authUser: authUser, name: member.member_name }, secretKey, { expiresIn: '4h' });
-      const kr_curr = getKrDate() //always convert to kr time? or use local time?
+      const kr_curr = getKrDate()
 
       //store login information
       db.collection("user_login").insertOne({
@@ -573,7 +594,6 @@ app.post('/login/verify-user', async (req, res) => {
         time_kr: kr_curr
       });
 
-      // console.log('server.js: id/pw', username, password, 'token, expire, ip:', authToken, tokenExpiry, userIp);
       res.cookie('token', secretToken, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
       res.cookie('authUser', authUser, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
       res.cookie('name', member.member_name, { httpOnly: true, secure: true, sameSite: 'Strict' }); //change secure to true when using https
@@ -585,40 +605,16 @@ app.post('/login/verify-user', async (req, res) => {
   }
 });
 
-//strict=true when only 관리자 is authorized otherwise any staff is authorized
-const verify_user = (cookies, strict) => {
-  try {
-    // console.log("verify_user", cookies, strict)
-    const token = cookies.token
-    jwt.verify(token, secretKey);
-    const decoded = jwt.decode(token);
-    // console.log(decoded, decoded.authUser, typeof decoded.authUser)
-    if (strict && decoded.authUser !== "true") {
-      return false;
-    }
-    // always verify name
-    if (decoded.name !== cookies.name) {
-      return false
-    }
-    return true;
-  } catch (err) {
-    return false; //fail verfiy
-  }
-
-}
-
 app.post('/register/userInfo', async (req, res) => {
-  // console.log("serverjs userInfo:", userInfo)
   try {
     //verify user
-    // console.log("/register/userInfo", req.cookies)
     const verified = verify_user(req.cookies, true)
     if (!verified) {
       return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
     }
 
     //store the hashed pw
-    const kr_curr = getKrDate() //always convert to kr time? or use local time?
+    const kr_curr = getKrDate()
     const userInfo = req.body;
     const hashedPassword = await bcrypt.hash(userInfo.password, saltRounds)
     const newUserInfo = {
@@ -640,7 +636,6 @@ app.post('/register/userInfo', async (req, res) => {
 app.get('/get-select-list', async (req, res) => {
   try {
     const select_lists = await db.collection('select_list').find().toArray();
-    // console.log("server", typeof select_lists, select_lists)
     if (select_lists.length === 0) {
       console.log('No select list found in the database.??');
     }
@@ -650,7 +645,7 @@ app.get('/get-select-list', async (req, res) => {
       console.log('No product list found in the database.');
     }
     const product_list = products.map(product => ({
-      cate_id: product.cate_id.toString(),  // Ensuring the ID is a string
+      cate_id: product.cate_id.toString(),
       good_id: product.good_id.toString(),
       good_name: product.good_name.toString()
     }));
@@ -663,22 +658,6 @@ app.get('/get-select-list', async (req, res) => {
 });
 app.post('/customer-support/search', async (req, res) => {
   try {
-    // await db.collection('external_buyer_table').find().forEach(function (doc) {
-    //   if (doc.reg_date) {
-    //     // Convert the string date to ISODate
-    //     const kr_time_diff = 9 * 60 * 60 * 1000; //always convert to kr time? or use local time?
-    //     var isoDate_kr = new Date(doc.reg_date).getTime() + kr_time_diff;
-    //     var isoDate = new Date(isoDate_kr)
-
-
-    //     // Update the document with the new ISODate
-    //     db.collection('external_buyer_table').updateOne(
-    //       { _id: doc._id },
-    //       { $set: { reg_date: isoDate } }
-    //     );
-    //   }
-    // });
-    // console.log("req.body", req.body)
     const query = {
       ...(req.body.address !== "" && { address: { $regex: req.body.address, $options: 'i' } }),
       ...(req.body.recipientName !== "" && { name: { $regex: req.body.recipientName, $options: 'i' } }),
@@ -701,7 +680,7 @@ app.post('/customer-support/search', async (req, res) => {
         }
       } : {})
     };
-    // console.log("serverjs", query)
+
     var ordered_item;
     if (Object.keys(query).length !== 0) {
       ordered_item = await db.collection('external_buyer_table').aggregate([
@@ -730,7 +709,6 @@ app.post('/customer-support/search', async (req, res) => {
       ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
     }
 
-    // console.log("server", typeof select_lists, select_lists)
     if (ordered_item.length === 0) {
       console.log('No select list found in the database.??');
     } else {
@@ -745,13 +723,10 @@ app.post('/customer-support/search', async (req, res) => {
 
 app.post('/customer-support/search-consultations', async (req, res) => {
   try {
-    // console.log("server", req.body.group_uid, typeof req.body.group_uid);
     const c_table = await db.collection('counsel_table').find({ 'group_uid': req.body.group_uid }).toArray();
     const m_table = await db.collection('manager_table').find({ 'group_uid': req.body.group_uid }).toArray();
-    // console.log("server", c_table)
-    // console.log("server", m_table)
-    //add a field; change dates from UNIX_TIMESTAMP to ISO Date
 
+    //add a field; change dates from UNIX_TIMESTAMP to ISO Date
     const c_table_mod = c_table.map(item => ({
       ...item,
       table: "c",
@@ -765,11 +740,8 @@ app.post('/customer-support/search-consultations', async (req, res) => {
       reg_date: convertDate(item.reg_date),
       end_date: convertDate(item.end_date),
     }));
-    // console.log("server c_table_mod", c_table_mod)
-    // console.log("server m_table_mod", m_table_mod)
-    const combined_sorted_list = c_table_mod.concat(m_table_mod).sort((a, b) => new Date(a.reg_date) - new Date(b.reg_date));
-    // console.log("server combined_sorted_list", combined_sorted_list)
     //combine the two
+    const combined_sorted_list = c_table_mod.concat(m_table_mod).sort((a, b) => new Date(a.reg_date) - new Date(b.reg_date));
     if (combined_sorted_list.length === 0) {
       console.log('No data found in the database.??');
     } else {
@@ -887,7 +859,6 @@ app.post('/customer-support/search-ASTable/resolved', async (req, res) => {
 
 app.post('/customer-support/search-ASTable/consultations', async (req, res) => {
   try {
-    // console.log("server, req.body", req.body)
     const e_table = await db.collection('external_buyer_table').find({ $and: [{ 'group_uid': req.body.group_uid }, { 'uid': req.body.external_uid }] }).sort({ 'reg_date': -1 }).toArray();
 
     if (e_table.length === 0) {
@@ -905,18 +876,13 @@ app.post('/customer-support/search-ASTable/consultations', async (req, res) => {
 
 app.post('/customer-support/submit-consultations', async (req, res) => {
   try {
-    console.log("server, customer-support/submit-consultations req.body", req.body)
-
     // verify user
-    // console.log(req.cookies, req.cookies.token)
     const verified = verify_user(req.cookies, false)
     if (!verified) {
       return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
     }
 
     const nextUID = String(await getNextUID("counsel_table"))
-    // console.log("customer-support/submit-consultations nextUID", nextUID)
-    // return res.send(201);
     const kr_time = getKrDate()
     const c_table = await db.collection('counsel_table').insertOne(
       {
@@ -937,7 +903,6 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
       return res.status(500).send("Insert operation failed.");
     }
 
-    // return res.send(201);
     const e_table = await db.collection('external_buyer_table').updateOne(
       { uid: req.body.external_uid }, // Query to find the product by code
       [
@@ -950,10 +915,8 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
       return res.status(500).send("Insert operation failed.");
     }
 
-    // console.log(nextUID, typeof nextUID)
     const added_counsel = await db.collection('counsel_table').findOne({ 'uid': nextUID })
     added_counsel["table"] = "c" // used in frontned
-    // console.log(added_counsel)
     if (!added_counsel) {
       console.log('No data found in the database.??');
     } else {
@@ -971,7 +934,6 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
 app.post('/customer-support/delete-consultations', async (req, res) => {
   try {
     // verify user
-    console.log("delete-consultations", req.body)
     const verified = verify_user(req.cookies, false)
     if (!verified) {
       return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
@@ -1038,10 +1000,7 @@ app.post('/customer-support/delete-consultations', async (req, res) => {
 
 app.post('/customer-support/edit-consultations', async (req, res) => {
   try {
-    // console.log("server, customer-support/edit-consultations req.body", req.body)
-
     // verify user
-    // console.log(req.cookies, req.cookies.token)
     const verified = verify_user(req.cookies, false)
     if (!verified) {
       return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
@@ -1075,10 +1034,8 @@ app.post('/customer-support/edit-consultations', async (req, res) => {
       return res.status(500).send("Insert operation failed.");
     }
 
-    // console.log(nextUID, typeof nextUID)
     const added_counsel = await db.collection('counsel_table').findOne({ 'uid': req.body.id })
     added_counsel["table"] = "c" // used in frontned
-    // console.log(added_counsel)
     if (!added_counsel) {
       console.log('No data found in the database.??');
     } else {
@@ -1094,7 +1051,6 @@ app.post('/customer-support/edit-consultations', async (req, res) => {
 
 app.get('/get-stock-good', async (req, res) => {
   try {
-    // console.log("server, get-stock-good req.body", req.body)
     const s_table = await db.collection('stock_good').find().toArray()
     if (s_table.lengnth === 0) {
       console.log('No data found in the database.??');
@@ -1128,7 +1084,6 @@ app.get('/get-next-orderid', async (req, res) => {
 
 app.post('/customer-support/check-duplicates', async (req, res) => {
   try {
-    // console.log("server, customer-support/check-duplicates req.body", req.body)
     let err_dates = [];
     let { set_start_date } = req.body
 
@@ -1139,7 +1094,6 @@ app.post('/customer-support/check-duplicates', async (req, res) => {
       const end_date = new Date(start_date_str);
       end_date.setHours(23, 59, 59, 999);
 
-      // console.log("check-duplicates", start_date, end_date);
       // Query the database for duplicates
       const e_table = await db.collection('external_buyer_table').findOne({
         $or: [
@@ -1159,7 +1113,6 @@ app.post('/customer-support/check-duplicates', async (req, res) => {
       });
 
       // Log the result and check for duplicates
-      // console.log(start_date_str, e_table);
       if (e_table) {
         err_dates.push(start_date_str);
       }
@@ -1190,11 +1143,6 @@ app.post('/customer-support/submitOrderCheck-external-stock', async (req, res) =
     const NextGUID = await getNextGUID("external_buyer_table")
     console.log("start insert external_buyer_table");
     for (const orderDataItem of orderData) {
-      // console.log(orderDataItem)
-      //       {reg_date: {
-      //         $gte: ISODate('2024-09-24'),
-      //         $lte: ISODate('2024-09-27'),
-      // }}
       const c_table = await db.collection('external_buyer_table').insertOne(
         {
           uid: nextEUID,
@@ -1249,17 +1197,14 @@ app.post('/customer-support/submitOrderCheck-external-stock', async (req, res) =
       switch (goodDivision) {
         case '0': // 신상품 재고 파악
           [passed, err_str] = await takeStock("new", stockData[i], stockGood_dict, stockCat_dict);
-          // console.log("after fetch new", passed, err_str);
           n++;
           break;
         case '1': // 검품상품 재고 파악
           [passed, err_str] = await takeStock("used", stockData[i], stockGood_dict, stockCat_dict);
-          // console.log("after fetch used", passed, err_str);
           u++;
           break;
         case '2': // B급 검품상품 재고 파악
           [passed, err_str] = await takeStock("usedB", stockData[i], stockGood_dict, stockCat_dict);
-          // console.log("after fetch usedB", passed, err_str);
           ub++;
           break;
         default:
@@ -1267,7 +1212,6 @@ app.post('/customer-support/submitOrderCheck-external-stock', async (req, res) =
       }
 
       if (!passed) return res.status(500).send(err_str);
-      // console.log("after, i", i);
     }
     console.log("finished insert stock_goods");
 

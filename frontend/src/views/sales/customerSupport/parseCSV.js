@@ -1,3 +1,4 @@
+// class.csv.custom.php를 참고하여 코딩했습니다.
 class CheckOrder {
     constructor(fileName, num, order_uid_start, companies, parsedStockGood) {
         if (!companies || !parsedStockGood) throw Error("화면을 새로고침 해주세요")
@@ -27,6 +28,7 @@ class CheckOrder {
         this.fileName = fileName; // Store the filename if needed later
     }
 
+    // class.csv.custom.php > get_data_from_file() 참조
     async getDataFromFile() {
         const reader = new FileReader();
         let old = {
@@ -186,6 +188,7 @@ class CheckOrder {
         return [t1, t2, t3].filter(Boolean).join('-');
     }
 
+    // class.csv.custom.php > check_good_name_rule() 참조
     // return [false, error_msg] or [true,this.group_uid]
     check_good_name_rule(idx, rowData, name) {
         // return true;
@@ -328,10 +331,8 @@ class CheckOrder {
 
                 // 입력한 제품 이름으로 DB에서 검색...
                 const [matchingNames, idNamePair, noExistNames] = this.countGoodName(curr_good.name)
-                // console.log("matchingNames, idNamePair, noExistNames", matchingNames, idNamePair, noExistNames)
                 if (matchingNames.length === 1) { //정상: 하나만 찾은 경우
                     const [good_id, goodName] = idNamePair[0]
-                    // console.log("good_id, goodName", good_id, goodName)
                     curr_good.line = idx + 1;
                     curr_good.code = good_id;
                     curr_good.real_name = goodName;
@@ -384,6 +385,7 @@ class CheckOrder {
         return [matchingNames, idNamePair, noExistNames];
     }
 
+    // class.csv.custom.php > grouping_goods() 참조
     grouping_goods() {
         // Check for items with num = "0"
         for (let ll = 0; ll < this.totalRow; ll++) {
@@ -404,7 +406,6 @@ class CheckOrder {
             try {
                 if (good.goodDivision === '0') {
                     k = this.exist_array(this.goodList, this.newGood, i);
-                    // console.log("grouping_goods k", k) 
                     if (k >= 0) {
                         this.newGood[k].num += good.num;
                     } else {
@@ -412,7 +413,6 @@ class CheckOrder {
                     }
                 } else if (good.goodDivision === '1') {
                     k = this.exist_array(this.goodList, this.usedGood, i);
-                    // console.log("grouping_goods k", k)
                     if (k >= 0) {
                         this.usedGood[k].num += good.num;
                     } else {
@@ -420,7 +420,6 @@ class CheckOrder {
                     }
                 } else if (good.goodDivision === '2') {
                     k = this.exist_array(this.goodList, this.BUsedGood, i);
-                    // console.log("grouping_goods k", k)
                     if (k >= 0) {
                         this.BUsedGood[k].num += good.num;
                     } else {
@@ -443,11 +442,10 @@ class CheckOrder {
         ];
     }
 
+    // class.csv.custom.php > exist_array() 참조
     exist_array(a, b, k) {
         // Check if the same product exists based on code and warehouse
         for (let i = 0; i < b.length; i++) {
-            // console.log("b", b)
-            // console.log("b[i].code, a[k].code, b[i].warehouse, a[k].warehouse", b[i].code, a[k].code, b[i].warehouse, a[k].warehouse)
             if (b[i].code.trim() === a[k].code.trim() && b[i].warehouse.trim() === a[k].warehouse.trim()) {
                 return i;
             }

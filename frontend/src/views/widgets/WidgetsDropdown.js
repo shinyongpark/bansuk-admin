@@ -37,40 +37,6 @@ const WidgetsDropdown = (props) => {
   const [date, setDate] = useState(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const [dateNY, setDateNY] = useState(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
 
-
-
-  // useEffect(() => {
-  //   document.documentElement.addEventListener('ColorSchemeChange', () => {
-  //     if (widgetChartRef1.current) {
-  //       setTimeout(() => {
-  //         widgetChartRef1.current.data.datasets[0].pointBackgroundColor = getStyle('--cui-primary')
-  //         widgetChartRef1.current.update()
-  //       })
-  //     }
-
-  //     if (widgetChartRef2.current) {
-  //       setTimeout(() => {
-  //         widgetChartRef2.current.data.datasets[0].pointBackgroundColor = getStyle('--cui-info')
-  //         widgetChartRef2.current.update()
-  //       })
-  //     }
-  //   })
-  // }, [widgetChartRef1, widgetChartRef2])
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     if (widgetChartRef1.current) {
-  //       widgetChartRef1.current.update();
-  //     }
-
-  //     if (widgetChartRef2.current) {
-  //       widgetChartRef2.current.update();
-  //     }
-  //   }, 1000); // Call the function every 1000 milliseconds (1 second)
-
-  //   return () => clearInterval(interval);
-  // }, [widgetChartRef1, widgetChartRef2]);
-
   useEffect(() => {
     const fetchDataAndTables = async () => {
       const [parsedCounselSection, parsedCounselResult] = await getList();
@@ -178,10 +144,6 @@ const WidgetsDropdown = (props) => {
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                {/* <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem> */}
               </CDropdownMenu>
             </CDropdown>
           }
@@ -221,10 +183,6 @@ const WidgetsDropdown = (props) => {
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                {/* <CDropdownItem>Action</CDropdownItem>
-                <CDropdownItem>Another action</CDropdownItem>
-                <CDropdownItem>Something else here...</CDropdownItem>
-                <CDropdownItem disabled>Disabled action</CDropdownItem> */}
               </CDropdownMenu>
             </CDropdown>
           }
@@ -264,8 +222,6 @@ const WidgetsDropdown = (props) => {
                 <CIcon icon={cilOptions} />
               </CDropdownToggle>
               <CDropdownMenu>
-                {/* <Link to="/sales/customer-support" className="dropdown-item"> 고객관리에서 자세히 보기 </Link> */}
-                {/* <CDropdownItem onClick={getTotalSale}> AS 현황 새로고침 </CDropdownItem> */}
               </CDropdownMenu>
             </CDropdown>
           }

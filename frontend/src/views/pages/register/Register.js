@@ -32,9 +32,6 @@ const Register = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault()
-    //check userinput or backend??
-    // console.log(sessionStorage, (sessionStorage.getItem('authUser')), typeof sessionStorage.getItem('authUser'))
-    // console.log("registerjs userInfo:", userInfo)
     if (Object.keys(userInfo).length != 4) {
       alert('필드를 모두 입력해주세요');
       return;
@@ -45,9 +42,6 @@ const Register = () => {
       alert('해당 계정은 회원을 등록할 수 없습니다')
       return;
     }
-
-
-    //post userinfo
     try {
       const response = await axios.post('/register/userInfo', userInfo, {
         headers: { 'Content-Type': 'application/json' },

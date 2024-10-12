@@ -43,8 +43,6 @@ const Login = () => {
       sessionStorage.setItem('tokenExpiry', Date.now() + 3600 * 4000) // Token expire in 4 hour
       sessionStorage.setItem('authUser', response.data.authUser)
       sessionStorage.setItem('name', response.data.name)
-
-      // console.log("login.js", sessionStorage.getItem('authToken'), sessionStorage.getItem('tokenExpiry'))
       navigate('/');
       window.location.reload(false); //may need to change this
     } catch (error) {
@@ -53,17 +51,16 @@ const Login = () => {
     }
   };
 
-  //add later to capture enterkey
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleLogin();
+      handleLogin(e);
     }
   };
 
 
   return (
-    <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+    <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center" onKeyDown={handleKeyPress}>
       <CContainer>
         <CRow className="justify-content-center">
           <CCol md={6}>

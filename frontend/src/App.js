@@ -33,16 +33,12 @@ const App = () => {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isAuthenticated = () => {
-    // return true //change this later
     const token = sessionStorage.getItem('authUser');
     const expiry = sessionStorage.getItem('tokenExpiry');
-    // console.log("app.js", token, expiry)
 
     if (token && expiry && Date.now() < expiry) {
-      console.log("is authenticated");
       return true;
     } else {
-      console.log("is not authenticated");
       sessionStorage.removeItem('authUser');
       sessionStorage.removeItem('tokenExpiry');
       return false;
@@ -52,7 +48,6 @@ const App = () => {
   //check if user is allowed to access registration page
   const authRegistration = () => {
     const registration = sessionStorage.getItem('authUser') === "true"
-    // console.log(isAuthenticated() && registration)
     return isAuthenticated() && registration;
   }
 

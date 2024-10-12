@@ -84,7 +84,7 @@ const CustomerSupport = () => {
 
 
 
-    //same fields as tableData; kept all fields just for debugging
+    //same fields as tableData; kept all fields for debugging
     const [productDetails, setProductDetails] = useState({
         company: '', //order_company
         productName: '', //상품명 goods_name
@@ -124,7 +124,6 @@ const CustomerSupport = () => {
     // when user selects a row in page2, get all consultatoins(상담내역) for page4
     useEffect(() => {
         if (selectedRow) {
-            // console.log("customerService selectedRow: ", selectedRow);
             const fetchConsultations = async () => {
                 const response = await axios.post('/customer-support/search-consultations', selectedRow, {
                     headers: { 'Content-Type': 'application/json' },
@@ -157,7 +156,6 @@ const CustomerSupport = () => {
         try {
             setLoading(true);
             const response = await axios.get('/get-select-list');
-            // console.log("customerSupport", typeof response, response)
             const parsedCompanies = response.data.order_company.map(item => ({
                 value: item,
                 label: item === "" ? "미선택" : item
@@ -211,7 +209,6 @@ const CustomerSupport = () => {
     // change counsel data fields from DB to web
     const transformData_counsel = (response) => {
         const counselResult_m = ["상태 확인", "완료"];
-        // console.log(response.data)
         return response.data.map(item => ({
             id: item.uid,  // Corresponding field from DB
             group_uid: item.group_uid || '',
@@ -228,7 +225,6 @@ const CustomerSupport = () => {
 
     // change stockGood data fields from DB to web
     const transformData_stock = (response) => {
-        // console.log(response.data)
         return response.data.map(item => ({
             goodAlias: item.good_alias,
             goodName: item.good_name,
@@ -294,6 +290,7 @@ const CustomerSupport = () => {
         manager: item.manager
     }));
 
+    // admin_counsel_print1.php > '운송장 번호로 택배회사로 연결시키기' 파트 참고
     // getting url from invoiceNo for delivery status
     function getDeliveryUrl(invoiceNo, regDate) {
         let delCom = "no";
@@ -391,7 +388,6 @@ const CustomerSupport = () => {
     //when user selects the counseler it filters the consultationsAS
     useEffect(() => {
         if (selectedCounselerASTable) {
-            // console.log("customerService selectedCounselerASTable: ", selectedCounselerASTable);
             const filteredConsultations = consultationsAS.filter(
                 (row) => (selectedCounselerASTable.ASCounseler.value === '' || row.counseler === selectedCounselerASTable.ASCounseler.value)
             );
@@ -421,13 +417,11 @@ const CustomerSupport = () => {
 
     // when user selects the row, shows on page 2
     const handleCheckboxChangeASTable = async (row) => {
-        console.log("handleCheckboxChangeASTable", row)
         setSelectedRowASTable(row);
         const foundSelected = tableData.filter((row_table) => row_table.group_uid === row.group_uid)[0]
         if (foundSelected) {
             setSelectedRow(foundSelected);
         } else {
-            console.log(row);
             const response = await axios.post('/customer-support/search-ASTable/consultations', row, {
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -441,8 +435,6 @@ const CustomerSupport = () => {
     };
 
     const handleASTableConfirm = async () => {
-        // Proceed with the action when the user clicks "네"
-        console.log('Proceed with action for:', selectedRowResASTable);
         // set proceed = 1: resolved = 반품 완료
         try {
             const response = await axios.post('/customer-support/search-ASTable/resolved', selectedRowResASTable, {
@@ -472,8 +464,6 @@ const CustomerSupport = () => {
     };
 
     const handleASTableCancel = () => {
-        // Handle "아니요" action
-        console.log('Action canceled');
         setVisibleASTableConfirmModal(false);
         return;
     };
@@ -503,14 +493,12 @@ const CustomerSupport = () => {
 
     // when user selects the row, shows on page 2
     const handleCheckboxChangeConsultationsTable = async (row) => {
-        console.log("handleCheckboxChangeConsultationsTable", row)
         setSelectedRowConsultationsTable(row);
 
         const foundSelected = tableData.filter((row_table) => row_table.group_uid === row.group_uid)[0]
         if (foundSelected) {
             setSelectedRow(foundSelected);
         } else {
-            console.log(row);
             const response = await axios.post('/customer-support/search-ASTable/consultations', row, {
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -547,7 +535,6 @@ const CustomerSupport = () => {
 
     const handleUpload = () => {
         if (selectedFile) {
-            console.log('Uploading file:', selectedFile);
             setUploadedFileName(selectedFile.name)
             setModalVisible(false);
             setIsTestPassed(false); //reset after uploading
@@ -576,7 +563,6 @@ const CustomerSupport = () => {
                 //get orderid
                 const getstockGood = await axios.get('/get-next-orderid');
                 const order_uid = getstockGood.data;
-                // console.log(order_uid);
                 // 데이터 포멧 체크 + 비활성화 제품이 있으면 에러 발생: check_data() 두번째 파트
                 const checking = new CheckOrder(selectedFile, productDetails.orderCount, order_uid, listArray.order_company, parsedStockGood)
                 const response = await checking.getDataFromFile();
@@ -602,7 +588,6 @@ const CustomerSupport = () => {
                     }, {
                     headers: { 'Content-Type': 'application/json' },
                 });
-                // console.log("checkDuplicate.data, dateDict, response[3]", checkDuplicate.data, dateDict, response[3])
                 if (false && checkDuplicate.data.length) { //duplicates exist
                     let errStr = "이중으로 등록될 제품들이 있습니다: \n";
                     checkDuplicate.data.forEach(start_date => {
@@ -633,7 +618,6 @@ const CustomerSupport = () => {
     const submitOrderCheck = async () => {
         try {
             setLoading(true);
-            // console.log("submitOrderCheck orderData, stockData", orderData, stockData);
             //check user auth!
             const stockGood_dict = {}
             for (const stockGoodItem of stockGood) {
@@ -644,7 +628,6 @@ const CustomerSupport = () => {
                     cateId: stockGoodItem.cateId
                 };
             }
-            // console.log("submitOrderCheck orderData, stockData, stockGood_dict", orderData, stockData, stockGood_dict)
             const insertOrder = await axios.post('/customer-support/submitOrderCheck-external-stock',
                 {
                     orderData: orderData,
@@ -698,7 +681,6 @@ const CustomerSupport = () => {
             consultationTime: getKrDate(),
             counseler: sessionStorage.getItem('name')
         }));
-        // console.log("handleCheckboxChange, row", row)
         setSelectedRow(selectedRow === row ? null : row)
         return;
     };
@@ -708,7 +690,6 @@ const CustomerSupport = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            // console.log("customerSupport", productDetails)
             const response = await axios.post('/customer-support/search', productDetails, {
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -806,6 +787,7 @@ const CustomerSupport = () => {
         }
     };
 
+    // when user edits consultation 
     const handleSelectedRowConsult = async (selectedRowConsult) => {
         if (!newConsultations.content) {
             alert("상담 내용을 작성해주세요");
@@ -816,7 +798,6 @@ const CustomerSupport = () => {
             newConsultations["id"] = selectedRowConsult.id
             newConsultations["completionTime"] = getKrDate()
             newConsultations["external_uid"] = selectedRowConsult.external_uid;
-            // console.log("handleSelectedRowConsult", newConsultations);
             const response = await axios.post('/customer-support/edit-consultations', newConsultations, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
@@ -843,9 +824,9 @@ const CustomerSupport = () => {
         }
     }
 
+    // when user deletes consultation ask for confirmation
     const handleConsultConfirm = async () => {
         selectedRowConsult.counselResult = counselResultRev[selectedRowConsult.counselResult];
-        console.log('Proceed with action for delete:', selectedRowConsult);
         setLoading(true);
         try {
             const response = await axios.post('/customer-support/delete-consultations', selectedRowConsult, {
@@ -1338,7 +1319,7 @@ const CustomerSupport = () => {
                             {/* ///////////////////////// page2: delivery popup start //////////////////////////////////////////////////////////////////////////// */}
                             <CModal visible={deliveryVisible} onClose={closeModal} size="xl">
                                 <CModalHeader closeButton>
-                                    <CModalTitle>Delivery Tracking</CModalTitle>
+                                    <CModalTitle>배송 조회</CModalTitle>
                                 </CModalHeader>
                                 <CModalBody>
                                     {deliveryUrl ? (
@@ -1348,7 +1329,7 @@ const CustomerSupport = () => {
                                             title="Delivery Tracking"
                                         ></iframe>
                                     ) : (
-                                        <p>No URL available for this invoice.</p>
+                                        <p>배송 정보 조회가 안됩니다. 송장번호 혹은 URL을 확인해주세요.</p>
                                     )}
                                 </CModalBody>
                                 <CButton color="secondary" onClick={closeModal}>Close</CButton>
@@ -1604,7 +1585,7 @@ const CustomerSupport = () => {
                                                     <CFormLabel>처리결과</CFormLabel>
                                                     <CFormInput type="text" name="counselResult" value={selectedRowConsult.counselResult || ''} readOnly />
                                                 </CCol>
-
+                                                {/* 상담구분과 처리결과 또한 수정 가능하도록 하고 싶은 경우 밑에 코드를 uncomment하고 위 코드를 comment 해주세요 */}
                                                 {/* <CCol style={{ width: '12.5%' }}>
                                                     <CFormLabel>상담구분</CFormLabel>
                                                     <Select
@@ -1667,7 +1648,7 @@ const CustomerSupport = () => {
                                                 </CCol>
                                             </CRow>
                                         </CForm>
-
+                                        {/* ///////////////////////// page4: 고객 상담 내역 삭제하기 확인 팝업; delete consultation popup //////////////////////////////////////////////////////////////////////////// */}
                                         <CModal visible={visibleConsultConfirmModal} onClose={() => setVisibleConsultConfirmModal(false)} size="sm">
                                             <CModalHeader onClose={() => setVisibleConsultConfirmModal(false)}>
                                                 <CModalTitle>확인</CModalTitle>
