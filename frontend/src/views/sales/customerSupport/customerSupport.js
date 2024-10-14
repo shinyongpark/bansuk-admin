@@ -40,6 +40,7 @@ const CustomerSupport = () => {
     const [staffNames, setStaffNames] = useState([]);
     const [stockGood, setStockGood] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [countSearch, setCountSearch] = useState(null);
 
     // page 1 file upload - 첨부파일
     const [modalVisible, setModalVisible] = useState(false); //used for popup visibility
@@ -138,7 +139,7 @@ const CustomerSupport = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }    
+    }
 
     // get the lists when open page
     useEffect(() => {
@@ -722,9 +723,16 @@ const CustomerSupport = () => {
 
             // Update the state with the transformed data
             setTableData(transformedData);
+            setCountSearch(transformedData.length);
             setSelectedRow(null);
         } catch (error) {
-            console.error('Error fetching data:', error);
+            if (error.response && error.response.status === 401) {
+                alert('검색 데이터가 너무 많아 시간이 오래 걸립니다. 발송기간을 설정해주세요');
+            } else {
+                console.error('Error fetching data:', error);
+                alert('데이터 조회 중 문제가 발생했습니다. 관리자에게 문의해주세요')
+            }
+
         } finally {
             setLoading(false); // Hide loading spinner
             return;
@@ -1087,6 +1095,7 @@ const CustomerSupport = () => {
                                             onChange={date => setProductDetails({ ...productDetails, startDate: date })}
                                             dateFormat="yyyy-MM-dd"
                                             placeholderText="시작: YYYY-MM-DD"
+                                            autoComplete='unique-startDate'
                                         />
                                     </div>
                                     <div style={{ flex: 2.5 }}>
@@ -1095,6 +1104,7 @@ const CustomerSupport = () => {
                                             onChange={date => setProductDetails({ ...productDetails, endDate: date })}
                                             dateFormat="yyyy-MM-dd"
                                             placeholderText="종료: YYYY-MM-DD"
+                                            autoComplete='unique-endDate'
                                         />
                                     </div>
                                 </div>
@@ -1275,8 +1285,9 @@ const CustomerSupport = () => {
                                 </div>
                             </CCol>
                             {/* 조회 버튼 */}
-                            <CCol xs={2}>
-                                <div style={{ marginTop: '2rem' }}> {/* Adding space above the button */}
+                            <CCol md={2}>
+                                <CFormLabel>총 {countSearch ? countSearch : 0}건</CFormLabel>
+                                <div style={{ flex: 2 }}>
                                     <CButton color="primary" type="submit" onClick={handleView}>조회</CButton>
                                 </div>
                             </CCol>
@@ -1297,16 +1308,16 @@ const CustomerSupport = () => {
                             <table className="custom-table">
                                 <thead>
                                     <tr>
-                                        <th> </th>
-                                        <th>업체</th>
-                                        <th>발송일자</th>
-                                        <th>구매인</th>
-                                        <th>수취인</th>
-                                        <th>전화번호1</th>
-                                        <th>전화번호2</th>
-                                        <th>상품명</th>
-                                        <th>송장번호</th>
-                                        <th>요구사항</th>
+                                        <th style={{ width: '3%' }}> </th>
+                                        <th style={{ width: '10%' }}>업체</th>
+                                        <th style={{ width: '10%' }}>발송일자</th>
+                                        <th style={{ width: '7%' }}>구매인</th>
+                                        <th style={{ width: '7%' }}>수취인</th>
+                                        <th style={{ width: '10%' }}>전화번호1</th>
+                                        <th style={{ width: '10%' }}>전화번호2</th>
+                                        <th style={{ width: '12%' }}>상품명</th>
+                                        <th style={{ width: '10%' }}>송장번호</th>
+                                        <th style={{ width: '20%' }}>요구사항</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1695,7 +1706,7 @@ const CustomerSupport = () => {
                                     <table className="custom-table">
                                         <thead>
                                             <tr>
-                                                <th> </th>
+                                                <th style={{ width: '3%' }}> </th>
                                                 <th style={{ width: '8%' }}>상담구분</th>
                                                 <th style={{ width: '7%' }}>처리상태</th>
                                                 <th style={{ width: '15%' }}>상담시간</th>

@@ -103,9 +103,9 @@ const Profile = () => {
                                     <h1>Profile</h1>
                                     <p className="text-body-secondary">비밀번호 변경하기</p>
                                     <CInputGroup className="mb-3">
-                                        <CInputGroupText>
+                                        {/* <CInputGroupText>
                                             <CIcon icon={cilLockLocked} />
-                                        </CInputGroupText>
+                                        </CInputGroupText> */}
                                         <CFormInput
                                             type={showPassword.currentPassword ? 'text' : 'password'}
                                             placeholder="Current Password"
@@ -139,9 +139,9 @@ const Profile = () => {
 
                                     {/* Confirm New Password Input */}
                                     <CInputGroup className="mb-4">
-                                        <CInputGroupText>
+                                        {/* <CInputGroupText>
                                             <CIcon icon={cilLockLocked} />
-                                        </CInputGroupText>
+                                        </CInputGroupText> */}
                                         <CFormInput
                                             type={showPassword.confirmNewPassword ? 'text' : 'password'}
                                             placeholder="Confirm New Password"

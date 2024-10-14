@@ -13,6 +13,7 @@ const cookieParser = require('cookie-parser');
 
 // Connect to MongoDB
 let connectDB = require('./config/db'); // Adjust path as necessary
+const { MongoDBNamespace } = require('mongodb');
 
 let db;
 connectDB.then((client) => {
@@ -88,6 +89,63 @@ const decryptIpAddress = (encryptedIpAddress) => {
   const decrypted = bytes.toString(cryptoJS.enc.Utf8);
   return decrypted;
 };
+
+async function getNextUID(collectionName) {
+  try {
+    const lastRecord = await db.collection(collectionName).find().sort({ _id: -1 }).limit(1).toArray();
+    const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].uid) : 0;
+    return maxUID + 1;
+  } catch (error) {
+    console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
+    throw new Error('Database operation failed');
+  }
+}
+
+async function getNextGUID(collectionName) {
+  try {
+    const lastRecord = await db.collection(collectionName).find().sort({ _id: -1 }).limit(1).toArray();
+    const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].group_uid) : 0;
+    return maxUID + 1;
+  } catch (error) {
+    console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
+    throw new Error('Database operation failed');
+  }
+}
+
+// converts all reg_date with string format to new Date format 
+// since it's a loop it takes a while to convert all data... there might be a better way
+const convertTime2DateDB = async (collectionName) => {
+  try {
+    const cursor = db.collection(collectionName).find({ reg_date: { $type: "string" } });
+
+    console.log('start converting');
+    while (await cursor.hasNext()) {
+      const doc = await cursor.next();
+      const original_time = doc.reg_date;
+      const newRegDate = getKrDate(original_time);
+
+      await db.collection(collectionName).updateOne(
+        { _id: doc._id },
+        { $set: { reg_date: newRegDate } }
+      );
+    }
+
+    console.log('all documents updated.');
+
+  } catch (error) {
+    console.error('Error updating reg_date:', error);
+  }
+}
+
+const createIndexDB = async (collectionName, fieldName = null) => {
+  try {
+    const field = fieldName || "uid";
+    await db.collection(collectionName).createIndex({ [field]: 1 });
+    console.log("Finished creating index for", collectionName);
+  } catch (error) {
+    console.log("Error creating index:", error)
+  }
+}
 
 // helper functions end //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -209,29 +267,6 @@ app.get('/get-total-prime-cost', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-async function getNextUID(collectionName) {
-  try {
-    const lastRecord = await db.collection(collectionName).find().sort({ _id: -1 }).limit(1).toArray();
-    const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].uid) : 0;
-    return maxUID + 1;
-  } catch (error) {
-    console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
-    throw new Error('Database operation failed');
-  }
-}
-
-async function getNextGUID(collectionName) {
-  try {
-    const lastRecord = await db.collection(collectionName).find().sort({ _id: -1 }).limit(1).toArray();
-    const maxUID = lastRecord.length > 0 ? parseInt(lastRecord[0].group_uid) : 0;
-    return maxUID + 1;
-  } catch (error) {
-    console.error(`Failed to retrieve next UID from ${collectionName}:`, error);
-    throw new Error('Database operation failed');
-  }
-}
 
 app.post('/add-incoming-goods', async (req, res) => {
   try {
@@ -734,34 +769,34 @@ app.get('/get-select-list', async (req, res) => {
     return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
   }
 });
+
 app.post('/customer-support/search', async (req, res) => {
   try {
     const query = {
-      ...(req.body.address !== "" && { address: { $regex: req.body.address, $options: 'i' } }),
-      ...(req.body.recipientName !== "" && { name: { $regex: req.body.recipientName, $options: 'i' } }),
-      ...(req.body.buyerName !== "" && { purchaser_name: { $regex: req.body.buyerName, $options: 'i' } }),
+      ...(req.body.address && { address: { $regex: req.body.address, $options: 'i' } }),
+      ...(req.body.recipientName && { name: { $regex: req.body.recipientName, $options: 'i' } }),
+      ...(req.body.buyerName && { purchaser_name: { $regex: req.body.buyerName, $options: 'i' } }),
       ...(req.body.productName.value && { goods_name: { $regex: req.body.productName.value, $options: 'i' } }),
       ...(req.body.company.value && { order_company: req.body.company.value }),
       ...(req.body.counselResult.value && { counsel_result: req.body.counselResult.value }),
-      ...(req.body.recipientPhoneLast4 !== "" || req.body.buyerPhoneLast4 !== "" ? {
+      ...(req.body.recipientPhoneLast4 || req.body.buyerPhoneLast4 ? {
         $or: [
-          ...(req.body.recipientPhoneLast4 !== "" ? [{ tel1: { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
-          ...(req.body.recipientPhoneLast4 !== "" ? [{ tel2: { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
-          ...(req.body.buyerPhoneLast4 !== "" ? [{ purchaser_tel1: { $regex: req.body.buyerPhoneLast4 + '$' } }] : []),
-          ...(req.body.buyerPhoneLast4 !== "" ? [{ purchaser_tel2: { $regex: req.body.buyerPhoneLast4 + '$' } }] : [])
+          ...(req.body.recipientPhoneLast4 ? [{ tel1: { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
+          ...(req.body.recipientPhoneLast4 ? [{ tel2: { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
+          ...(req.body.buyerPhoneLast4 ? [{ purchaser_tel1: { $regex: req.body.buyerPhoneLast4 + '$' } }] : []),
+          ...(req.body.buyerPhoneLast4 ? [{ purchaser_tel2: { $regex: req.body.buyerPhoneLast4 + '$' } }] : [])
         ]
       } : {}),
-      ...(req.body.startDate !== "" || req.body.endDate !== "" ? {
+      ...(req.body.startDate || req.body.endDate ? {
         reg_date: {
-          ...(req.body.startDate !== "" && { $gte: new Date(req.body.startDate) }),
-          ...(req.body.endDate !== "" && { $lte: new Date(req.body.endDate) })
+          ...(req.body.startDate && { $gte: new Date(req.body.startDate) }),
+          ...(req.body.endDate && { $lte: new Date(req.body.endDate) })
         }
       } : {})
     };
-
     var ordered_item;
     if (Object.keys(query).length !== 0) {
-      ordered_item = await db.collection('external_buyer_table').aggregate([
+      ordered_item = await db.collection('external_recent').aggregate([
         { $match: query }, // First, match the external_buyer_table records based on the query
         {
           $lookup: {
@@ -781,21 +816,29 @@ app.post('/customer-support/search', async (req, res) => {
             })
           }
         }
-      ]).sort({ 'reg_date': -1 }).toArray();
+      ], { maxTimeMS: 15000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
     } else {
       // no userinput, limit result to 1000 ordered by reg_date
-      ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
+      ordered_item = await db.collection('external_recent').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
     }
-
     if (ordered_item.length === 0) {
-      console.log('No select list found in the database.??');
+      console.log(query);
+      console.log('No data found; sending: ', 0);
     } else {
       console.log('sending: ', ordered_item.length);
     }
     return res.json(ordered_item);
   } catch (error) {
-    console.error('Failed to fetch customer-suport-external-buyers:', error);
-    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+    if (error.codeName === 'MaxTimeMSExpired') {
+      return res.status(401).send("Request timeout: The query took too long to execute.");
+    } else if (error.codeName === 'QueryExceededMemoryLimitNoDiskUseAllowed') {
+      console.log("Error while fetching data from DB", error.codeName);
+      return res.status(401).send("Request timeout: The query took too long to execute.");
+    } else {
+      console.error('Failed to fetch customer-suport-external-buyers:', error);
+      return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+    }
+
   }
 });
 

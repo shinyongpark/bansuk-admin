@@ -48,10 +48,20 @@ const WidgetsDropdown = (props) => {
     fetchDataAndTables();
   }, []); // Runs once when the component mounts
 
+  // update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDate(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      setDateNY(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+    }, 1000);
+
+    return () => clearInterval(timer); // Clear the interval on component unmount
+  }, []);
+
   //////////////// helper functions /////////////////////////////////////////////////////////////////////////////////
   const getList = async () => {
     try {
-      const response = await axios.get('https://bs-admin.com:443/get-select-list');
+      const response = await axios.get('/get-select-list');
       const parsedCounselSection = response.data.counsel_section.map((item) =>
         item === "" ? "미선택" : item
       );
@@ -70,7 +80,7 @@ const WidgetsDropdown = (props) => {
 
   const getASTable = async (parsedCounselSection = null, parsedCounselResult = null) => {
     try {
-      const response = await axios.get('https://bs-admin.com:443/customer-support/search-ASTable');
+      const response = await axios.get('/customer-support/search-ASTable');
       const consultations = response.data.map(item => ({
         id: item.uid,
         startDate: item.reg_date.split('T')[0],
@@ -87,7 +97,7 @@ const WidgetsDropdown = (props) => {
   const getDateConsultTable = async (parsedCounselSection = null, parsedCounselResult = null) => {
     const productDetails = {};
     try {
-      const response = await axios.post('https://bs-admin.com:443/customer-support/search-ConsultationsTable', productDetails, {
+      const response = await axios.post('/customer-support/search-ConsultationsTable', productDetails, {
         headers: { 'Content-Type': 'application/json' },
       });
       const consultations = response.data.map(item => ({
