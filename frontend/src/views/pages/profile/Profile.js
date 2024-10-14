@@ -4,7 +4,7 @@ import {
     CCard,
     CCardBody,
     CLink,
-    Col,
+    CCol,
     CContainer,
     CForm,
     CFormInput,
