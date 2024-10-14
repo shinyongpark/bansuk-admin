@@ -673,6 +673,7 @@ app.post('/register/userInfo', async (req, res) => {
 
 app.post('/profile/changePassword', async (req, res) => {
   try {
+    console.log("/profile/changePassword", req.body);
     //verify user
     const verified = verify_user(req.cookies, false)
     if (!verified) {
@@ -684,6 +685,7 @@ app.post('/profile/changePassword', async (req, res) => {
     const userId = decoded.userId;
     const member = await db.collection('members').findOne({ member_id: userId });
     const match = await bcrypt.compare(req.body.currentPassword, member.member_pass);
+    console.log("match", match)
     if (!match) {
       return res.status(401).send({ error: "기존비밀번호가 일치하지 않습니다" });
     }
@@ -692,12 +694,12 @@ app.post('/profile/changePassword', async (req, res) => {
     const kr_curr = getKrDate()
     const newPassword = req.body.newPassword;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds)
+    console.log("hashedPassword", hashedPassword)
     const newInfo = await db.collection('members').updateOne(
       { member_id: userId },
-      [
-        { $set: { member_pass: hashedPassword } }
-      ]
+      { $set: { member_pass: hashedPassword } }
     );
+    console.log("newInfo", newInfo)
     if (!newInfo.acknowledged) {
       return res.status(500).send("update operation failed.");
     }
