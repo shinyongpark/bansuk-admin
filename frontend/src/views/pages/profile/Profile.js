@@ -19,6 +19,13 @@ import axios from 'axios';
 
 const Profile = () => {
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(
+        {
+            currentPassword: false,
+            newPassword: false,
+            confirmNewPassword: false
+        }
+    );
     const [passwordInfo, setPasswordInfo] = useState({
         currentPassword: '',
         newPassword: '',
