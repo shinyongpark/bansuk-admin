@@ -115,6 +115,31 @@ const CustomerSupport = () => {
         request: '', //comments
     });
 
+    // Convert Data to CSV
+    const convertToCSV = (data) => {
+        const array = [Object.keys(data[0])].concat(data);
+        return array.map(it => {
+            return Object.values(it).toString();
+        }).join("\n");
+    }
+
+    // Download the converted CSV file
+    const downloadCSV = () => {
+        if (!tableData || !tableData.length) {
+            alert("No data available to download.");
+            return;
+        }
+        const csvData = convertToCSV(tableData);
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'downloaded_data.csv'); // Specify the file name
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }    
+
     // get the lists when open page
     useEffect(() => {
         fetchSelectList();
@@ -1253,6 +1278,12 @@ const CustomerSupport = () => {
                             <CCol xs={2}>
                                 <div style={{ marginTop: '2rem' }}> {/* Adding space above the button */}
                                     <CButton color="primary" type="submit" onClick={handleView}>조회</CButton>
+                                </div>
+                            </CCol>
+                            {/* 다운로드 버튼 */}
+                            <CCol xs={2}>
+                                <div style={{ marginTop: '2rem' }}> {/* Adding space above the button */}
+                                    <CButton color="secondary" type="button" onClick={downloadCSV} style={{ marginLeft: '10px' }}>CSV 다운로드</CButton>
                                 </div>
                             </CCol>
 
