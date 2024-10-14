@@ -121,9 +121,9 @@ const Profile = () => {
 
                                     {/* New Password Input */}
                                     <CInputGroup className="mb-3">
-                                        <CInputGroupText>
+                                        {/* <CInputGroupText>
                                             <CIcon icon={cilLockLocked} />
-                                        </CInputGroupText>
+                                        </CInputGroupText> */}
                                         <CFormInput
                                             type={showPassword.newPassword ? 'text' : 'password'}
                                             placeholder="New Password"
