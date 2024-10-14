@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CButton, CCard, CCardBody, CCol, CContainer, CForm, CFormInput, CInputGroup, CInputGroupText, CRow } from '@coreui/react';
 import { useNavigate } from 'react-router-dom'
 import CIcon from '@coreui/icons-react';
-import { cilLockLocked, cilEye, cilEyeSlash } from '@coreui/icons';
+import { cilLockLocked, cilLockUnlocked } from '@coreui/icons';
 import axios from 'axios';
 
 const Profile = () => {
@@ -96,7 +96,7 @@ const Profile = () => {
                                             value={passwordInfo.currentPassword}
                                         />
                                         <CInputGroupText onClick={() => togglePasswordVisibility('currentPassword')} style={{ cursor: 'pointer' }}>
-                                            <CIcon icon={showPassword.currentPassword ? cilEyeSlash : cilEye} />
+                                            <CIcon icon={showPassword.currentPassword ? cilLockUnlocked : cilLockLocked} />
                                         </CInputGroupText>
                                     </CInputGroup>
 
@@ -114,7 +114,7 @@ const Profile = () => {
                                             value={passwordInfo.newPassword}
                                         />
                                         <CInputGroupText onClick={() => togglePasswordVisibility('newPassword')} style={{ cursor: 'pointer' }}>
-                                            <CIcon icon={showPassword.newPassword ? cilEyeSlash : cilEye} />
+                                            <CIcon icon={showPassword.newPassword ? cilLockUnlocked : cilLockLocked} />
                                         </CInputGroupText>
                                     </CInputGroup>
 
@@ -132,7 +132,7 @@ const Profile = () => {
                                             value={passwordInfo.confirmNewPassword}
                                         />
                                         <CInputGroupText onClick={() => togglePasswordVisibility('confirmNewPassword')} style={{ cursor: 'pointer' }}>
-                                            <CIcon icon={showPassword.confirmNewPassword ? cilEyeSlash : cilEye} />
+                                            <CIcon icon={showPassword.confirmNewPassword ? cilLockUnlocked : cilLockLocked} />
                                         </CInputGroupText>
                                     </CInputGroup>
                                     <div className="d-grid">
