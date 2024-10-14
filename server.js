@@ -155,6 +155,7 @@ app.get('/get-products', async (req, res) => {
         remarks: product.good_remarks,
         coupang: product.good_remarks2,
         primeCost: product.prime_cost,
+        primeCost2: product.prime_cost_2,
         stock: stockMap[product.good_id] || 'N/A',
         recentIncomingDate,
         recentIncomingQuantity,
@@ -180,7 +181,11 @@ app.get('/get-total-prime-cost', async (req, res) => {
     const totalPrimeCost = products.reduce((acc, product) => {
       const productStock = stockMap[product.good_id] || 0;
       const productCost = parseFloat(product.prime_cost) || 0;
-      return acc + (productCost * productStock);
+      // Only include product cost in the total if the stock is non-negative
+      if (productStock >= 0) {
+        return acc + (productCost * productStock);
+      }
+      return acc;
     }, 0);
 
     res.json({ totalPrimeCost });
@@ -418,18 +423,31 @@ app.post('/update-product-cost', async (req, res) => {
     return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
   }
 
-  const { id, newPrimeCost } = req.body; // Destructure the relevant data from request body
+  const { id, newPrimeCost, newPrimeCost2 } = req.body; // Destructure the relevant data from request body
 
-  if (!id || newPrimeCost === undefined) {
-    return res.status(400).json({ message: 'Product ID and new prime cost are required.' });
+  if (!id || newPrimeCost === undefined || newPrimeCost2 === undefined) {
+    return res.status(400).json({ message: 'Product ID and new prime costs are required.' });
   }
 
   try {
     // Attempt to update the product using the provided ID
     const updatedProduct = await db.collection('product_list').updateOne(
       { good_id: id },
-      { $set: { prime_cost: newPrimeCost } }
+      { $set: { prime_cost: newPrimeCost, prime_cost_2: newPrimeCost2 } }
     );
+
+    nextUID = getNextUID('product_cost')
+    
+
+    await db.collection('product_cost').insertOne(
+      {
+        uid: nextUID,
+        stock_good_id: id,
+        prime_cost: newPrimeCost,
+        prime_cost_2: newPrimeCost2,
+        reg_date: getKrDate()
+      }
+    )
 
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Product not found.' });
@@ -488,8 +506,8 @@ app.get('/sales/product-details', async (req, res) => {
 
 app.get('/get-sales-data', async (req, res) => {
   const { year, month, category } = req.query;
-  if (!year || !month || !category) {
-    return res.status(400).json({ message: 'Year, month, and category are required' });
+  if (!year || !month) {
+    return res.status(400).json({ message: 'Year and month are required' });
   }
   try {
     const startMonth = new Date(year, month - 1, 1);
@@ -497,12 +515,17 @@ app.get('/get-sales-data', async (req, res) => {
     const startDate = Math.floor(startMonth.getTime() / 1000);
     const endDate = Math.floor(endMonth.getTime() / 1000);
 
-    const products = await db.collection('product_list').find({ cate_id: category, good_exist: 'y' }).toArray();
+    const query = { good_exist: 'y' };
+    if (category) {
+      query.cate_id = category;
+    }
+
+    const products = await db.collection('product_list').find(query).toArray();
 
     const salesData = await db.collection('outgoing_goods').aggregate([
       {
         $match: {
-          cate_id: category,
+          ...(category && { cate_id: category }), // Only include category in the match if it is defined
           date: { $gte: startDate.toString(), $lt: endDate.toString() }
         }
       },

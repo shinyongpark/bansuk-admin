@@ -29,11 +29,7 @@ const SalesData = () => {
   const handleView = async () => {
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth() + 1;
-    const category = selectedCategory;
-    if (!category) {
-      alert('Please select a category');
-      return;
-    }
+    const category = selectedCategory === 'all' ? undefined : selectedCategory; // Send undefined if 'All Categories' is selected
     try {
       const response = await axios.get('/get-sales-data', { params: { year, month, category } });
       setSalesData(response.data || []);
@@ -84,6 +80,7 @@ const SalesData = () => {
               <div className="w-auto mx-2" style={{ minWidth: '200px' }}>
                 <CFormSelect name="category" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
                   <option value="">Select a category</option>
+                  <option value="all">All Categories</option>
                   {categories.map(category => (
                     <option key={category.id} value={category.id}>{category.id + ' ' + category.name}</option>
                   ))}
@@ -109,14 +106,14 @@ const SalesData = () => {
                     },
                   },
                   scales: {
-                    x: {  // Notice the change from 'xAxes' to 'x'
+                    x: {
                       display: true,
                       title: {
                         display: true,
                         text: 'Day of the Month'
                       }
                     },
-                    y: {  // Notice the change from 'yAxes' to 'y'
+                    y: {
                       display: true,
                       title: {
                         display: true,
@@ -126,7 +123,7 @@ const SalesData = () => {
                   }
                 }}
               />
-
+  
               <CTable hover>
                 <CTableHead>
                   <CTableRow>
@@ -141,7 +138,9 @@ const SalesData = () => {
                     <CTableRow key={index}>
                       <CTableDataCell>{data.productName}</CTableDataCell>
                       {data.dailySales.map((sale, idx) => (
-                        <CTableDataCell key={idx}>{sale.count}</CTableDataCell>
+                        <CTableDataCell key={idx}>
+                          {sale.count !== 0 ? sale.count : ''}
+                        </CTableDataCell>
                       ))}
                       <CTableDataCell>{data.totalSales}</CTableDataCell>
                       <CTableDataCell>{data.stock}</CTableDataCell>
@@ -150,12 +149,11 @@ const SalesData = () => {
                 </CTableBody>
               </CTable>
             </CCardBody>
-
           </CCollapse>
         </CCard>
       </CCol>
     </CRow>
-  );
+  );  
 };
 
 export default SalesData;

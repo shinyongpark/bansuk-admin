@@ -67,46 +67,61 @@ const ProductsByCategory = () => {
     }
   };
 
-  const handleChange = (id, newCost) => {
+  const handleChange = (id, newCost, costType) => {
     setUpdateProducts(prev => ({
       ...prev,
-      [id]: newCost
+      [id]: {
+        ...prev[id],
+        [costType]: newCost
+      }
     }));
   };
 
   const handleCostUpdate = async (id, e) => {
-    e.preventDefault()
-
-    if (!updateProducts[id] || isNaN(Number(updateProducts[id]))) {
-      alert('Please enter a valid cost.');
+    e.preventDefault();
+  
+    const costData = updateProducts[id];
+    // Check if cost data is present and validate the cost entries to ensure they're not empty strings and are valid numbers
+    if (!costData || 
+        costData.primeCost === "" || 
+        isNaN(Number(costData.primeCost)) ||
+        isNaN(Number(costData.primeCost2))) {
+      alert('두 원가 모두 기입해주세요. 달러 원가가 없으면 0으로 기입하세요.');
       return;
     }
+  
     try {
-      // Assume newCost is converted to a number if it's a valid number string
-      const newCost = parseFloat(updateProducts[id]).toFixed(0); // Keeping two decimals for currency values
-
-      // Sending the updated cost to the server
-      const response = await axios.post('/update-product-cost', {
-        id,
-        newPrimeCost: newCost
-      }, {
-        withCredentials: true
-      });
-
-      // Handling the response from the server
-      if (response.data && response.status === 200) {
-        alert('제품 원가가 성공적으로 업데이트 되었습니다!');
-        setProducts(products.map(product =>
-          product.id === id ? { ...product, primeCost: newCost } : product
-        ));
+      // Prepare data ensuring numbers are properly formatted; skip update if either cost input is not modified (i.e., remains empty)
+      const newPrimeCost = costData.primeCost.trim() === "" ? undefined : parseFloat(costData.primeCost).toFixed(0);
+      const newPrimeCost2 = costData.primeCost2.trim() === "" ? undefined : parseFloat(costData.primeCost2).toFixed(2);
+  
+      // Only send the request if there is something to update
+      if (newPrimeCost !== undefined || newPrimeCost2 !== undefined) {
+        const response = await axios.post('/update-product-cost', {
+          id,
+          newPrimeCost,
+          newPrimeCost2
+        }, {
+          withCredentials: true
+        });
+  
+        if (response.data && response.status === 200) {
+          alert('Product costs updated successfully!');
+          setProducts(products.map(product =>
+            product.id === id ? { ...product, primeCost: newPrimeCost || product.primeCost, primeCost2: newPrimeCost2 || product.primeCost2 } : product
+          ));
+        } else {
+          throw new Error('Failed to update the product costs.');
+        }
       } else {
-        throw new Error('Failed to update the product cost.');
+        alert('No changes were made as no valid costs were entered.');
       }
     } catch (error) {
-      console.error('제품 업데이트 실패:', error);
-      alert('제품 원가 업데이트 실패');
+      console.error('Product update failed:', error);
+      alert('Failed to update product costs.');
     }
   };
+  
 
 
   return (
@@ -132,7 +147,8 @@ const ProductsByCategory = () => {
                       <CTableHeaderCell scope="col">자동분류명</CTableHeaderCell>
                       <CTableHeaderCell scope="col">상품 코드</CTableHeaderCell>
                       <CTableHeaderCell scope="col">공장</CTableHeaderCell>
-                      <CTableHeaderCell scope="col">기존 원가</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">원가₩</CTableHeaderCell>
+                      <CTableHeaderCell scope="col">원가$</CTableHeaderCell>
                       <CTableHeaderCell scope="col">총액</CTableHeaderCell>
                       {/* <CTableHeaderCell scope="col">최근 변경일</CTableHeaderCell> */}
                       <CTableHeaderCell scope="col">변경 원가</CTableHeaderCell>
@@ -146,13 +162,12 @@ const ProductsByCategory = () => {
                         <CTableDataCell>{product.id}</CTableDataCell>
                         <CTableDataCell>{product.factory}</CTableDataCell>
                         <CTableDataCell>{product.primeCost}</CTableDataCell>
+                        <CTableDataCell>{product.primeCost2}</CTableDataCell>
                         <CTableDataCell>{product.primeCost * product.stock}</CTableDataCell>
                         {/* <CTableDataCell>{'Latest Change Date'}</CTableDataCell> */}
                         <CTableDataCell>
-                          <CFormInput
-                            type="text"
-                            onChange={(e) => handleChange(product.id, e.target.value)}
-                          />
+                          KRW: <CFormInput type="text" value={updateProducts[product.id]?.primeCost || ''} onChange={(e) => handleChange(product.id, e.target.value, 'primeCost')} />
+                          USD: <CFormInput type="text" value={updateProducts[product.id]?.primeCost2 || ''} onChange={(e) => handleChange(product.id, e.target.value, 'primeCost2')} />
                         </CTableDataCell>
                         <CTableDataCell>
                           <CButton
