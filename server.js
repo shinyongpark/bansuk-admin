@@ -7,6 +7,7 @@ const app = express();
 // for login / register
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const cryptoJS = require('crypto-js');
 const cookieParser = require('cookie-parser');
 
 
@@ -37,6 +38,7 @@ app.use(cors({
 
 // helper functions & global vars //////////////////////////////////////////////////////////////////////
 const secretKey = process.env.JWT_SECRET_KEY
+const secretKeyIp = process.env.JWT_SECRET_KEY_IP
 const saltRounds = Number(process.env.SALT);
 
 const getKrDate = (input_time = null) => {
@@ -73,6 +75,19 @@ const verify_user = (cookies, strict) => {
     return false;
   }
 }
+
+// Function to encrypt the IP address
+const encryptIpAddress = (ipAddress) => {
+  const encrypted = cryptoJS.AES.encrypt(ipAddress, secretKeyIp).toString();
+  return encrypted;
+};
+
+// Function to decrypt the encrypted IP address
+const decryptIpAddress = (encryptedIpAddress) => {
+  const bytes = cryptoJS.AES.decrypt(encryptedIpAddress, secretKeyIp);
+  const decrypted = bytes.toString(cryptoJS.enc.Utf8);
+  return decrypted;
+};
 
 // helper functions end //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -222,7 +237,7 @@ app.post('/add-incoming-goods', async (req, res) => {
   try {
     const verified = verify_user(req.cookies, true)
     if (!verified) {
-      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+      return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
     }
 
     const nextUID = await getNextUID('incoming_goods');
@@ -267,7 +282,7 @@ app.post('/add-outgoing-goods', async (req, res) => {
   try {
     const verified = verify_user(req.cookies, true)
     if (!verified) {
-      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+      return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
     }
 
     const nextUID = await getNextUID('outgoing_goods');
@@ -309,7 +324,7 @@ app.post('/add-outgoing-goods', async (req, res) => {
 app.post('/edit-products', async (req, res) => {
   const verified = verify_user(req.cookies, true)
   if (!verified) {
-    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+    return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
   }
 
   console.log('reached')
@@ -365,7 +380,7 @@ app.post('/edit-products', async (req, res) => {
 app.post('/add-product', async (req, res) => {
   const verified = verify_user(req.cookies, true)
   if (!verified) {
-    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+    return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
   }
 
   const {
@@ -420,7 +435,7 @@ app.post('/add-product', async (req, res) => {
 app.post('/update-product-cost', async (req, res) => {
   const verified = verify_user(req.cookies, true)
   if (!verified) {
-    return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+    return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
   }
 
   const { id, newPrimeCost, newPrimeCost2 } = req.body; // Destructure the relevant data from request body
@@ -437,7 +452,7 @@ app.post('/update-product-cost', async (req, res) => {
     );
 
     nextUID = getNextUID('product_cost')
-    
+
 
     await db.collection('product_cost').insertOne(
       {
@@ -606,14 +621,15 @@ app.post('/login/verify-user', async (req, res) => {
 
     if (match) {
       const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const encryptedIp = encryptIpAddress(userIp);
       const authUser = process.env.AUTH_USER.split(',').includes(member.member_id).toString();
       const secretToken = jwt.sign({ userId: member.member_id, authUser: authUser, name: member.member_name }, secretKey, { expiresIn: '4h' });
       const kr_curr = getKrDate()
 
       //store login information
-      db.collection("user_login").insertOne({
+      db.collection("user_login_history").insertOne({
         userId: member.member_id,
-        userIp: userIp,
+        userIp: encryptedIp,
         time_kr: kr_curr
       });
 
@@ -633,7 +649,7 @@ app.post('/register/userInfo', async (req, res) => {
     //verify user
     const verified = verify_user(req.cookies, true)
     if (!verified) {
-      return res.status(404).send({ err_msg: 'Login failed', error: "invalid token" })
+      return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
     }
 
     //store the hashed pw
@@ -653,6 +669,43 @@ app.post('/register/userInfo', async (req, res) => {
     return res.status(404).send({ err_msg: 'Login failed', error: err });
   }
 
+});
+
+app.post('/profile/changePassword', async (req, res) => {
+  try {
+    //verify user
+    const verified = verify_user(req.cookies, false)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'invalid token', error: "관리자에게 문의해주세요" })
+    }
+
+    //check prev password
+    const decoded = jwt.decode(req.cookies.token);
+    const userId = decoded.userId;
+    const member = await db.collection('members').findOne({ member_id: userId });
+    const match = await bcrypt.compare(req.body.currentPassword, member.member_pass);
+    if (!match) {
+      return res.status(401).send({ error: "기존비밀번호가 일치하지 않습니다" });
+    }
+
+    //store new hashed pw
+    const kr_curr = getKrDate()
+    const newPassword = req.body.newPassword;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds)
+    const newInfo = await db.collection('members').updateOne(
+      { member_id: userId },
+      [
+        { $set: { member_pass: hashedPassword } }
+      ]
+    );
+    if (!newInfo.acknowledged) {
+      return res.status(500).send("update operation failed.");
+    }
+
+    return res.status(201).json({ message: "successful" });
+  } catch (err) {
+    return res.status(404).send({ err_msg: 'password update failed', error: err });
+  }
 });
 
 
