@@ -55,6 +55,10 @@ const getKrDate = (input_time = null) => {
 
 // convert utc or Date format to Date format
 const convertDate = (time) => {
+  //no value found
+  if (time === "0" || time === 0 || time === "0000-00-00 00:00:00" || time === "NULL") {
+    return "";
+  }
   return time instanceof Date ? time : new Date(time * 1000)
 }
 
@@ -114,27 +118,68 @@ async function getNextGUID(collectionName) {
 
 // converts all reg_date with string format to new Date format 
 // since it's a loop it takes a while to convert all data... there might be a better way
-const convertTime2DateDB = async (collectionName) => {
-  try {
-    const cursor = db.collection(collectionName).find({ reg_date: { $type: "string" } });
+const convertTime2DateDB = async (collectionName, loopNum) => {
+  const convertLoop = async (loopMod) => {
+    try {
+      let count = 0;
+      const cursor = db.collection(collectionName).find({ reg_date: { $type: "string" } });
 
-    console.log('start converting');
-    while (await cursor.hasNext()) {
-      const doc = await cursor.next();
-      const original_time = doc.reg_date;
-      const newRegDate = getKrDate(original_time);
+      console.log(`Start converting for loopMod ${loopMod}`);
+      while (await cursor.hasNext()) {
+        const doc = await cursor.next();
+        const docIdStr = doc._id.toString();
+        const lastDigit = parseInt(docIdStr[docIdStr.length - 1], 16);
 
-      await db.collection(collectionName).updateOne(
-        { _id: doc._id },
-        { $set: { reg_date: newRegDate } }
-      );
+        if (lastDigit % loopNum === loopMod) {
+          const original_time = doc.reg_date;
+          const newRegDate = getKrDate(original_time);
+
+          await db.collection(collectionName).updateOne(
+            { _id: doc._id },
+            { $set: { reg_date: newRegDate } }
+          );
+
+          count++;
+          if (count % 500 === 0) {
+            console.log(`Finished ${count} for loopMod ${loopMod} out of loopNum ${loopNum}`);
+            count = 0;
+          }
+        }
+      }
+
+      console.log(`All documents updated for loopMod ${loopMod} out of loopNum ${loopNum}`);
+      return true;
+    } catch (error) {
+      console.error(`Error updating reg_date for loopMod ${loopMod} out of loopNum ${loopNum}`, ':', error);
+      return false;
+    }
+  };
+
+  const stopWhenFinished = async (i) => {
+    let finished = false;
+    let attempts = 0;
+    const maxAttempts = 15; // Limit retries
+
+    while (!finished && attempts < maxAttempts) {
+      finished = await convertLoop(i);
+      attempts++;
+      if (!finished) {
+        console.log(`Retrying loopMod ${i}, attempt ${attempts}`);
+      }
     }
 
-    console.log('all documents updated.');
-
-  } catch (error) {
-    console.error('Error updating reg_date:', error);
+    if (!finished) {
+      console.error(`Failed to complete loopMod ${i} after ${maxAttempts} attempts`);
+    }
   }
+
+  const convertList = [];
+  for (let i = 0; i < loopNum; i++) {
+    convertList.push(stopWhenFinished(i));
+  }
+
+  // Wait for all promises to resolve
+  return Promise.all(convertList);
 }
 
 const createIndexDB = async (collectionName, fieldName = null) => {
@@ -794,9 +839,11 @@ app.post('/customer-support/search', async (req, res) => {
         }
       } : {})
     };
+    console.log(query)
+
     var ordered_item;
     if (Object.keys(query).length !== 0) {
-      ordered_item = await db.collection('external_recent').aggregate([
+      ordered_item = await db.collection('external_buyer_table').aggregate([
         { $match: query }, // First, match the external_buyer_table records based on the query
         {
           $lookup: {
@@ -816,13 +863,12 @@ app.post('/customer-support/search', async (req, res) => {
             })
           }
         }
-      ], { maxTimeMS: 15000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
+      ], { maxTimeMS: 30000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
     } else {
       // no userinput, limit result to 1000 ordered by reg_date
-      ordered_item = await db.collection('external_recent').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
+      ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
     }
     if (ordered_item.length === 0) {
-      console.log(query);
       console.log('No data found; sending: ', 0);
     } else {
       console.log('sending: ', ordered_item.length);
@@ -962,7 +1008,7 @@ app.post('/customer-support/search-ASTable/resolved', async (req, res) => {
 
   try {
     const m_table = await db.collection('manager_table').updateOne(
-      { uid: req.body.id }, // find by uid
+      { uid: req.body.uid }, // find by uid
       [
         { $set: { proceed: "1" } }
       ]
@@ -974,6 +1020,30 @@ app.post('/customer-support/search-ASTable/resolved', async (req, res) => {
     return res.json(m_table);
   } catch (error) {
     console.error('Failed to fetch customer-support-searchASTable-resolved:', error);
+    return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+  }
+});
+
+app.post('/customer-support/downloadCSV/changeCounselResult', async (req, res) => {
+  try {
+    const verified = verify_user(req.cookies, false)
+    if (!verified) {
+      return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
+    }
+    const filteredTableData = req.body
+    const bulkOperations = filteredTableData.map(item => ({
+      updateOne: {
+        filter: { uid: item.uid },                // Find document by uid
+        update: { $set: { counsel_result: "7" } }  // Set counselResult to "7"
+      }
+    }));
+
+    // Perform the bulk update operation
+    const result = await db.collection('external_buyer_table').bulkWrite(bulkOperations);
+    console.log('sending : ', result.modifiedCount);
+    return res.json([true]);
+  } catch (error) {
+    console.error('Failed to fetch /customer-support/downloadCSV/changeCounselResult:', error);
     return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
   }
 });
@@ -1017,7 +1087,7 @@ app.post('/customer-support/submit-consultations', async (req, res) => {
         'external_uid': req.body.external_uid,
         'group_uid': req.body.group_uid,
         'reg_date': new Date(req.body.consultationTime),
-        'end_date': new Date(req.body.completionTime),
+        'end_date': req.body.counselResult?.value === "7" ? new Date(req.body.completionTime) : null, //valid only when result == 7
       }
     );
     if (!c_table.acknowledged) {
@@ -1067,7 +1137,7 @@ app.post('/customer-support/delete-consultations', async (req, res) => {
     const c_table = await db.collection('counsel_table').find({
       external_uid: req.body.external_uid
     }).sort({ reg_date: 1 }).toArray();
-    const matchingIndex = c_table.findIndex(item => (item.counsel_result === req.body.counselResult && item.uid === req.body.id));
+    const matchingIndex = c_table.findIndex(item => (item.counsel_result === req.body.counselResult && item.uid === req.body.uid));
     if (matchingIndex === -1) {
       return res.status(404).send("Matching counsel result not found.");
     }
@@ -1107,7 +1177,7 @@ app.post('/customer-support/delete-consultations', async (req, res) => {
     }
 
     //delete the consultation
-    const del_counsel = await db.collection('counsel_table').deleteOne({ uid: req.body.id });
+    const del_counsel = await db.collection('counsel_table').deleteOne({ uid: req.body.uid });
     if (del_counsel.deletedCount !== 1) {
       return res.status(500).send("Delete operation failed.");
     }
@@ -1136,7 +1206,7 @@ app.post('/customer-support/edit-consultations', async (req, res) => {
       ...(req.body.counselSection ? { counsel_section: req.body.counselSection.value } : {})
     };
     const c_table = await db.collection('counsel_table').updateOne(
-      { uid: req.body.id }, // Query to find the product by code
+      { uid: req.body.uid }, // Query to find the product by code
       { $set: updateFields }
     );
     if (!c_table.acknowledged) {
@@ -1145,6 +1215,7 @@ app.post('/customer-support/edit-consultations', async (req, res) => {
 
     const updateFieldEx = {
       mod_date: new Date(req.body.completionTime),
+      end_date: req.body.counselResult?.value === "7" ? new Date(req.body.completionTime) : null,
       ...(req.body.counselResult ? { counsel_result: req.body.counselResult.value } : {})
     };
     const e_table = await db.collection('external_buyer_table').updateOne(
@@ -1155,7 +1226,7 @@ app.post('/customer-support/edit-consultations', async (req, res) => {
       return res.status(500).send("Insert operation failed.");
     }
 
-    const added_counsel = await db.collection('counsel_table').findOne({ 'uid': req.body.id })
+    const added_counsel = await db.collection('counsel_table').findOne({ 'uid': req.body.uid })
     added_counsel["table"] = "c" // used in frontned
     if (!added_counsel) {
       console.log('No data found in the database.??');
@@ -1415,6 +1486,254 @@ async function takeStock(goodDivision, goods, stockGood_dict, stockCat_dict) {
 
   return [true, ""];
 }
+
+app.post('/customer-support-refund/search', async (req, res) => {
+  try {
+    // make sure to convert counselResultRefund to counsel_result
+    const e_table_search = req.body.recipientName || req.body.buyerName || req.body.recipientPhoneLast4
+    // used to count data for 영업부에서 입력된 내용 == sql_count
+    const query_ex = {
+      ...(req.body.recipientName && { "e.name": { $regex: req.body.recipientName, $options: 'i' } }),
+      ...(req.body.buyerName && { "e.purchaser_name": { $regex: req.body.buyerName, $options: 'i' } }),
+      ...(req.body.recipientPhoneLast4 ? {
+        $or: [
+          ...(req.body.recipientPhoneLast4 ? [{ "e.tel1": { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
+          ...(req.body.recipientPhoneLast4 ? [{ "e.tel2": { $regex: req.body.recipientPhoneLast4 + '$' } }] : [])
+        ]
+      } : {}),
+      ...(req.body.startDate || req.body.endDate ? {
+        "e.reg_date": {
+          ...(req.body.startDate && { $gte: new Date(req.body.startDate) }),
+          ...(req.body.endDate && { $lte: new Date(req.body.endDate) })
+        }
+      } : {})
+    }
+    const query_c = {
+      ...(req.body.counselResultRefund?.value !== undefined && {
+        counsel_result: req.body.counselResultRefund.value === "10"
+          ? { $in: ["4", "3", "2"] }
+          : req.body.counselResultRefund.value === "0"
+            ? { $in: ["4", "3", "2", "7"] }
+            : req.body.counselResultRefund.value
+      }),
+      ...(req.body.startDate || req.body.endDate ? {
+        $or: [
+          {
+            reg_date: { // For Date objects
+              ...(req.body.startDate && { $gte: new Date(req.body.startDate) }),
+              ...(req.body.endDate && { $lte: new Date(req.body.endDate) })
+            }
+          },
+          {
+            reg_date: { // For Strings in milSec
+              ...(req.body.startDate && { $gte: new Date(req.body.startDate).getTime().toString() }),
+              ...(req.body.endDate && { $lte: new Date(req.body.endDate).getTime().toString() })
+            }
+          }
+        ]
+      } : {})
+    }
+    // console.log("server, query_ex", query_ex, "query_c", query_c)
+
+    const pipeline = e_table_search
+      ? [
+        { $match: query_c },
+        {
+          $lookup: {
+            from: "external_buyer_table",
+            localField: "group_uid",
+            foreignField: "group_uid",
+            as: "e"
+          }
+        },
+        { $unwind: "$e" },
+        { $match: query_ex }
+      ]
+      : [{ $match: query_c }];
+    var ordered_item = await db.collection("counsel_table").aggregate(pipeline, { maxTimeMS: 30000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
+
+    if (ordered_item.length !== 0) {
+      console.log('sending: ', ordered_item.length);
+      const c_table_mod = ordered_item.map(item => ({
+        ...item,
+        table: "c",
+        reg_date: convertDate(item.reg_date),
+        end_date: convertDate(item.end_date),
+      }));
+
+      // get data from external_buyer_table with c.group_uid = e_group_uid
+      // this is used in frontend
+      const uniqueGroupUids = [...new Set(ordered_item.map(item => item.group_uid))];
+      //may help searching with reg_dates
+      const ordered_item_ex = await db.collection("external_buyer_table").find({
+        group_uid: { $in: uniqueGroupUids }
+      }).toArray();
+
+      return res.json({ counsel_table: true, ordered_item: c_table_mod, ordered_item_ex: ordered_item_ex });
+    }
+
+
+    console.log('no data found; 상담 내역이 완료되었거나 없을때 쿼리.');
+    const query2_ex = {
+      // some problem with this case... 
+      //not sure what to do when value === 0, is it ne:NULL, $in[4, 3, 2, 7], or $in[4, 3, 2]
+      ...(req.body.counselResultRefund?.value !== undefined && {
+        counsel_result: req.body.counselResultRefund.value === "10"
+          ? { $in: ["4", "3", "2"] }
+          : req.body.counselResultRefund.value === "0"
+            ? { $in: ["4", "3", "2", "7"] }
+            : req.body.counselResultRefund.value
+      }),
+      ...(req.body.recipientName && { name: { $regex: req.body.recipientName, $options: 'i' } }),
+      ...(req.body.buyerName && { purchaser_name: { $regex: req.body.buyerName, $options: 'i' } }),
+      ...(req.body.recipientPhoneLast4 ? {
+        $or: [
+          ...(req.body.recipientPhoneLast4 ? [{ tel1: { $regex: req.body.recipientPhoneLast4 + '$' } }] : []),
+          ...(req.body.recipientPhoneLast4 ? [{ tel2: { $regex: req.body.recipientPhoneLast4 + '$' } }] : [])
+        ]
+      } : {}),
+      ...(req.body.startDate || req.body.endDate ? {
+        reg_date: {
+          ...(req.body.startDate && { $gte: new Date(req.body.startDate) }),
+          ...(req.body.endDate && { $lte: new Date(req.body.endDate) })
+        }
+      } : {})
+    };
+    const c_table_search = req.body.counselResultRefund?.value !== "0";
+    const query2_c = {
+      ...(req.body.counselResultRefund?.value !== undefined && {
+        "c.counsel_result": req.body.counselResultRefund.value === "10"
+          ? { $in: ["4", "3", "2"] }
+          : req.body.counselResultRefund.value
+      }),
+      ...(req.body.startDate || req.body.endDate ? {
+        $or: [
+          {
+            "c.reg_date": { // For Date objects
+              ...(req.body.startDate && { $gte: new Date(req.body.startDate) }),
+              ...(req.body.endDate && { $lte: new Date(req.body.endDate) })
+            }
+          },
+          {
+            "c.reg_date": { // For Strings in milSec
+              ...(req.body.startDate && { $gte: new Date(req.body.startDate).getTime().toString() }),
+              ...(req.body.endDate && { $lte: new Date(req.body.endDate).getTime().toString() })
+            }
+          }
+        ]
+      } : {})
+    };
+
+    console.log("server, query2_ex", query2_ex, "query2_c", query2_c)
+
+    const pipeline2 = c_table_search
+      ? [
+        { $match: query2_ex },
+        {
+          $lookup: {
+            from: "counsel_table",
+            localField: "uid",
+            foreignField: "external_uid",
+            as: "c"
+          }
+        },
+        { $unwind: "$c" },
+        { $match: query2_c }
+      ]
+      : [
+        { $match: query2_ex }
+      ];
+    ordered_item = await db.collection("external_buyer_table").aggregate(pipeline2, { maxTimeMS: 30000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
+    if (ordered_item.length !== 0) {
+      console.log('sending: ', ordered_item.length);
+      // get data from counsel_table with c.group_uid = e_group_uid
+      // this is used in frontend
+      const uniqueCounselUids = [...new Set(ordered_item.map(item => item.counsel_uid))];
+      //may help searching with reg_dates
+      const ordered_item_c = await db.collection("counsel_table").find({
+        group_uid: { $in: uniqueCounselUids }
+      }).toArray();
+
+      return res.json({ counsel_table: false, ordered_item: ordered_item, ordered_item_c: ordered_item_c });
+    } else {
+      console.log('no data found; sending: ', ordered_item.length);
+      return res.json({ counsel_table: false, ordered_item: ordered_item });
+    }
+  } catch (error) {
+    if (error.codeName === 'MaxTimeMSExpired') {
+      return res.status(401).send("Request timeout: The query took too long to execute.");
+    } else if (error.codeName === 'QueryExceededMemoryLimitNoDiskUseAllowed') {
+      console.log("Error while fetching data from DB", error.codeName);
+      return res.status(401).send("Request timeout: The query took too long to execute.");
+    } else {
+      console.error('Failed to fetch customer-suport-external-buyers:', error);
+      return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+    }
+
+  }
+});
+
+// 미완성
+// app.post('/customer-support-refund/submit-consultations', async (req, res) => {
+//   try {
+//     // verify user
+//     const verified = verify_user(req.cookies, false)
+//     if (!verified) {
+//       return res.status(404).send({ err_msg: 'Not authorized', error: "invalid token" })
+//     }
+
+//     const nextUID = String(await getNextUID("manager_table"))
+//     const kr_time = getKrDate()
+//     const c_table = await db.collection('manager_table').insertOne(
+//       {
+//         'uid': nextUID,
+//         'counsel_uid': req.body.counsel_uid,
+//         'group_uid': req.body.group_uid,
+//         'external_uid': req.body.external_uid,
+//         'counsel_result': req.body.counselResult.value,
+//         'manager_content': req.body.content,
+//         'counseler': req.cookies.name, //prevent impersonation
+//         'reg_date': new Date(req.body.consultationTime),
+//         'outgoing_num': req.body.outgoing_num,
+//         'counsel_date': kr_time,
+
+//         'counsel_section': req.body.counselSection.value,
+//         'counsel_time': kr_time,
+//         'web_uid': '',
+//       }
+//     );
+
+//     if (!c_table.acknowledged) {
+//       return res.status(500).send("Insert operation failed.");
+//     }
+
+//     const e_table = await db.collection('external_buyer_table').updateOne(
+//       { uid: req.body.external_uid }, // Query to find the product by code
+//       [
+//         { $set: { counsel_uid: nextUID } },
+//         { $set: { counsel_result: req.body.counselResult.value } },
+//         { $set: { mod_date: kr_time } }
+//       ]
+//     );
+//     if (!e_table.acknowledged) {
+//       return res.status(500).send("Insert operation failed.");
+//     }
+
+//     const added_counsel = await db.collection('counsel_table').findOne({ 'uid': nextUID })
+//     added_counsel["table"] = "c" // used in frontned
+//     if (!added_counsel) {
+//       console.log('No data found in the database.??');
+//     } else {
+//       console.log('sending: 1',);
+//     }
+
+//     return res.json([added_counsel]); //wrap it to a list
+//   } catch (error) {
+//     console.error('Failed to fetch customer-support-searchASTable-consultations:', error);
+//     return res.status(500).json({ error_msg: 'Internal Server Error', error: error });
+//   }
+// });
+
 
 // Handle any other requests and serve the React app
 app.get('*', (req, res) => {

@@ -359,6 +359,11 @@ const _nav = [
         name: '고객 관리',
         to: '/sales/customer-support',
       },
+      {
+        component: CNavItem,
+        name: '고객 반품 관리',
+        to: '/sales/customer-refund',
+      },
       // {
       //   component: CNavItem,
       //   name: '원가 관리',

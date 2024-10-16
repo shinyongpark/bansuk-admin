@@ -37,11 +37,10 @@ const WidgetsDropdown = (props) => {
   const [date, setDate] = useState(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const [dateNY, setDateNY] = useState(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
 
+  // initial update
   useEffect(() => {
     const fetchDataAndTables = async () => {
       const [parsedCounselSection, parsedCounselResult] = await getList();
-      await getASTable(parsedCounselSection, parsedCounselResult);
-      await getDateConsultTable(parsedCounselSection, parsedCounselResult);
       setNotes('');
     };
 
@@ -56,6 +55,25 @@ const WidgetsDropdown = (props) => {
     }, 1000);
 
     return () => clearInterval(timer); // Clear the interval on component unmount
+  }, []);
+
+  // schedule the next fetch in 5 minutes for tables
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchData = async () => {
+      await getASTable();
+      await getDateConsultTable();
+      if (isMounted) {
+        setTimeout(fetchData, 1000 * 60 * 5);
+      }
+    };
+
+    fetchData();  // Initial call
+
+    return () => {
+      isMounted = false;  // Cleanup to prevent memory leaks
+    };
   }, []);
 
   //////////////// helper functions /////////////////////////////////////////////////////////////////////////////////
