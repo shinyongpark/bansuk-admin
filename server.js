@@ -863,13 +863,15 @@ app.post('/customer-support/search', async (req, res) => {
             })
           }
         }
-      ], { maxTimeMS: 30000, allowDiskUse: true }).sort({ 'reg_date': -1 }).toArray();
+      ], { maxTimeMS: 30000, allowDiskUse: true }).sort({ 'reg_date': -1 }).limit(1001).toArray();
     } else {
       // no userinput, limit result to 1000 ordered by reg_date
       ordered_item = await db.collection('external_buyer_table').find().sort({ 'reg_date': -1 }).limit(1000).toArray();
     }
     if (ordered_item.length === 0) {
       console.log('No data found; sending: ', 0);
+    } else if (ordered_item.length >= 1001) {
+      console.log('too much data cutting at 1001st sending ', ordered_item.length);
     } else {
       console.log('sending: ', ordered_item.length);
     }
