@@ -4,6 +4,7 @@ import { CButton, CCard, CCardBody, CCardHeader, CCol, CFormSelect, CRow, CColla
 import { CChartLine } from '@coreui/react-chartjs';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import '../../../css/CustomTableStyles.css'; // Adjust path as necessary
 
 const SalesData = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -123,8 +124,7 @@ const SalesData = () => {
                   }
                 }}
               />
-  
-              <CTable hover>
+              <CTable hover className="fixed-header-table">
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell scope="col">제품명</CTableHeaderCell>
@@ -138,9 +138,7 @@ const SalesData = () => {
                     <CTableRow key={index}>
                       <CTableDataCell>{data.productName}</CTableDataCell>
                       {data.dailySales.map((sale, idx) => (
-                        <CTableDataCell key={idx}>
-                          {sale.count !== 0 ? sale.count : ''}
-                        </CTableDataCell>
+                        <CTableDataCell key={idx}>{sale.count !== 0 ? sale.count : ''}</CTableDataCell>
                       ))}
                       <CTableDataCell>{data.totalSales}</CTableDataCell>
                       <CTableDataCell>{data.stock}</CTableDataCell>
